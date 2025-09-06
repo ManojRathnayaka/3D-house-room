@@ -49,7 +49,6 @@ GLuint posterTexture2;   // Texture for the second poster
 GLuint carpetTexture;    // Texture for the carpet
 GLuint floorTexture;     // Texture for the floor
 
-
 static GLfloat v_cube[8][3] =
 {
     {0.0f, 0.0f, 0.0f}, //0
