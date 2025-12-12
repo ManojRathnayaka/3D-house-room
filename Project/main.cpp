@@ -26,7 +26,8 @@ float cameraSpeed = 0.05f;
 bool keys[256] = { false }; // Track key states for smooth movement
 
 // Original variables
-GLboolean redFlag = GL_TRUE, switchOne = GL_FALSE, switchTwo = GL_FALSE, switchLamp = GL_FALSE, amb1 = GL_TRUE, diff1 = GL_TRUE, spec1 = GL_TRUE, amb3 = GL_TRUE, diff3 = GL_TRUE, spec3 = GL_TRUE;
+GLboolean redFlag = GL_TRUE;
+bool switchOne = false, switchLamp = false;
 double windowHeight = 680, windowWidth = 1340;
 // Initial camera position to be outside, in front of the door
 double eyeX = 2.8, eyeY = 2.0, eyeZ = 20.0, refX = 0, refY = 0, refZ = 0;
@@ -1350,49 +1351,55 @@ void lightBulb3()
 void lightOne()
 {
     glPushMatrix();
-    GLfloat no_light[] = { 0.0f, 0.0f, 0.0f, 1.0f };
     GLfloat light_ambient[] = { 0.5f, 0.5f, 0.5f, 1.0f };
     GLfloat light_diffuse[] = { 1.0f, 1.0f, 1.0f, 1.0f };
     GLfloat light_specular[] = { 1.0f, 1.0f, 1.0f, 1.0f };
     GLfloat light_position[] = { 5.0f, 5.0f, 8.0f, 1.0f };
 
-    if (amb1 == GL_TRUE) { glLightfv(GL_LIGHT0, GL_AMBIENT, light_ambient); }
-    else { glLightfv(GL_LIGHT0, GL_AMBIENT, no_light); }
-
-    if (diff1 == GL_TRUE) { glLightfv(GL_LIGHT0, GL_DIFFUSE, light_diffuse); }
-    else { glLightfv(GL_LIGHT0, GL_DIFFUSE, no_light); }
-
-    if (spec1 == GL_TRUE) { glLightfv(GL_LIGHT0, GL_SPECULAR, light_specular); }
-    else { glLightfv(GL_LIGHT0, GL_SPECULAR, no_light); }
-
+    // Always set position
     glLightfv(GL_LIGHT0, GL_POSITION, light_position);
+
+    if (switchOne == GL_TRUE) {
+        // Apply all light components
+        glLightfv(GL_LIGHT0, GL_AMBIENT, light_ambient);
+        glLightfv(GL_LIGHT0, GL_DIFFUSE, light_diffuse);
+        glLightfv(GL_LIGHT0, GL_SPECULAR, light_specular);
+        glEnable(GL_LIGHT0);
+    }
+    else {
+        glDisable(GL_LIGHT0);
+    }
+
     glPopMatrix();
 }
 
 void lampLight()
 {
     glPushMatrix();
-    GLfloat no_light[] = { 0.0f, 0.0f, 0.0f, 1.0f };
     GLfloat light_ambient[] = { 0.5f, 0.5f, 0.5f, 1.0f };
     GLfloat light_diffuse[] = { 1.0f, 1.0f, 1.0f, 1.0f };
     GLfloat light_specular[] = { 1.0f, 1.0f, 1.0f, 1.0f };
     GLfloat light_position[] = { 0.7f, 1.5f, 9.0f, 1.0f };
 
-    if (amb3 == GL_TRUE) { glLightfv(GL_LIGHT2, GL_AMBIENT, light_ambient); }
-    else { glLightfv(GL_LIGHT2, GL_AMBIENT, no_light); }
-
-    if (diff3 == GL_TRUE) { glLightfv(GL_LIGHT2, GL_DIFFUSE, light_diffuse); }
-    else { glLightfv(GL_LIGHT2, GL_DIFFUSE, no_light); }
-
-    if (spec3 == GL_TRUE) { glLightfv(GL_LIGHT2, GL_SPECULAR, light_specular); }
-    else { glLightfv(GL_LIGHT2, GL_SPECULAR, no_light); }
-
+    // Always set position and spot direction
     glLightfv(GL_LIGHT2, GL_POSITION, light_position);
     GLfloat spot_direction[] = { 0.3f, -1, -0.8f };
     glLightfv(GL_LIGHT2, GL_SPOT_DIRECTION, spot_direction);
     glLightf(GL_LIGHT2, GL_SPOT_CUTOFF, 35.0f);
+
+    if (switchLamp == GL_TRUE) {
+        // Apply all light components
+        glLightfv(GL_LIGHT2, GL_AMBIENT, light_ambient);
+        glLightfv(GL_LIGHT2, GL_DIFFUSE, light_diffuse);
+        glLightfv(GL_LIGHT2, GL_SPECULAR, light_specular);
+        glEnable(GL_LIGHT2);
+    }
+    else {
+        glDisable(GL_LIGHT2);
+    }
     glPopMatrix();
 }
+
 
 // FPS Camera Movement Functions
 void processMovement()
@@ -1533,6 +1540,7 @@ void myKeyboardFunc(unsigned char key, int x, int y)
             std::cout << "Mouse released - ESC to capture again" << std::endl;
         }
         break;
+
     case 'f':
     case 'F':
         if (doorAngle < 90.0f) {
@@ -1546,45 +1554,15 @@ void myKeyboardFunc(unsigned char key, int x, int y)
             std::cout << "Closing door..." << std::endl;
         }
         break;
-    case '1': //to turn on and off light one
-        if (switchOne == GL_FALSE)
-        {
-            switchOne = GL_TRUE; amb1 = GL_TRUE; diff1 = GL_TRUE; spec1 = GL_TRUE;
-            glEnable(GL_LIGHT0); break;
-        }
-        else if (switchOne == GL_TRUE)
-        {
-            switchOne = GL_FALSE; amb1 = GL_FALSE; diff1 = GL_FALSE; spec1 = GL_FALSE; glDisable(GL_LIGHT0); break;
-        }
-    case '3': //to turn on and off lamp light
-        if (switchLamp == GL_FALSE)
-        {
-            switchLamp = GL_TRUE; amb3 = GL_TRUE; diff3 = GL_TRUE; spec3 = GL_TRUE;
-            glEnable(GL_LIGHT2); break;
-        }
-        else if (switchLamp == GL_TRUE)
-        {
-            switchLamp = GL_FALSE; amb3 = GL_FALSE; diff3 = GL_FALSE; spec3 = GL_FALSE;
-            glDisable(GL_LIGHT2); break;
-        }
-    case'4': //turn on/off ambient light 1
-        if (amb1 == GL_FALSE) { amb1 = GL_TRUE; break; }
-        else { amb1 = GL_FALSE; break; }
-    case'5':
-        if (diff1 == GL_FALSE) { diff1 = GL_TRUE; break; }
-        else { diff1 = GL_FALSE; break; }
-    case'6':
-        if (spec1 == GL_FALSE) { spec1 = GL_TRUE; break; }
-        else { spec1 = GL_FALSE; break; }
-    case'0': //turn on/off ambient lamp light
-        if (amb3 == GL_FALSE) { amb3 = GL_TRUE; break; }
-        else { amb3 = GL_FALSE; break; }
-    case'-':
-        if (diff3 == GL_FALSE) { diff3 = GL_TRUE; break; }
-        else { diff3 = GL_FALSE; break; }
-    case'=':
-        if (spec3 == GL_FALSE) { spec3 = GL_TRUE; break; }
-        else { spec3 = GL_FALSE; break; }
+
+    case '1': // Master switch for Light One
+        switchOne = !switchOne; // Toggles between True and False
+        break;
+
+    case '2': // Master switch for Lamp Light
+        switchLamp = !switchLamp; // Toggles between True and False
+        break;
+
     case 'r': case 'R':
         // Reset camera to default starting position
         eyeX = 2.8; eyeY = 2.0; eyeZ = 16.0;
@@ -1704,24 +1682,9 @@ int main(int argc, char** argv)
     std::cout << "F: Open/Close the door" << std::endl;
     std::cout << "      " << std::endl;
     std::cout << "=== LIGHTING CONTROLS ===" << std::endl;
-    std::cout << "Light source 1 [the light on the right on the screen]:" << std::endl;
-    std::cout << "1: to turn on/off light one" << std::endl;
-    std::cout << "4: to turn on/off ambient light one" << std::endl;
-    std::cout << "5: to turn on/off diffusion light one" << std::endl;
-    std::cout << "6: to turn on/off specular light one" << std::endl;
-    std::cout << "      " << std::endl;
-    std::cout << "Light source 2 [the light on the left on the screen]:" << std::endl;
-    std::cout << "2: to turn on/off light two" << std::endl;
-    std::cout << "7: to turn on/off ambient light two" << std::endl;
-    std::cout << "8: to turn on/off diffusion light two" << std::endl;
-    std::cout << "9: to turn on/off specular light two" << std::endl;
-    std::cout << "      " << std::endl;
-    std::cout << "Lamp light (spot light):" << std::endl;
-    std::cout << "3: to turn on/off lamp" << std::endl;
-    std::cout << "0: to turn on/off ambient lamp light" << std::endl;
-    std::cout << "-: to turn on/off diffusion lamp light" << std::endl;
-    std::cout << "=: to turn on/off specular lamp light" << std::endl;
-    std::cout << "      " << std::endl;
+    std::cout << "1: Turn ON/OFF Main Light" << std::endl;
+    std::cout << "3: Turn ON/OFF Lamp Light" << std::endl;
+    std::cout << "____________________" << std::endl;
     std::cout << "____________________" << std::endl;
 
     glutInitDisplayMode(GLUT_DOUBLE | GLUT_RGB | GLUT_DEPTH);
