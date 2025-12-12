@@ -42,15 +42,13 @@ const float doorSpeed = 2.0f; // Degrees per frame
 float fanRotationAngle = 0.0f;
 const float fanSpeed = 2.5f;
 
-
 // Texture IDs
 GLuint woodTexture;      // Texture for the door
 GLuint posterTexture;    // Texture for the poster
 GLuint carpetTexture;    // Texture for the carpet
 GLuint floorTexture;     // Texture for the floor
 
-static GLfloat v_cube[8][3] =
-{
+static GLfloat v_cube[8][3] = {
     {0.0f, 0.0f, 0.0f}, //0
     {0.0f, 0.0f, 3.0f}, //1
     {3.0f, 0.0f, 3.0f}, //2
@@ -61,8 +59,7 @@ static GLfloat v_cube[8][3] =
     {3.0f, 3.0f, 0.0f}  //7
 };
 
-static GLubyte quadIndices[6][4] =
-{
+static GLubyte quadIndices[6][4] = {
     {0, 1, 2, 3}, //bottom
     {4, 5, 6, 7}, //top
     {5, 1, 2, 6}, //front
@@ -72,8 +69,7 @@ static GLubyte quadIndices[6][4] =
 };
 
 static void getNormal3p
-(GLfloat x1, GLfloat y1, GLfloat z1, GLfloat x2, GLfloat y2, GLfloat z2, GLfloat x3, GLfloat y3, GLfloat z3)
-{
+(GLfloat x1, GLfloat y1, GLfloat z1, GLfloat x2, GLfloat y2, GLfloat z2, GLfloat x3, GLfloat y3, GLfloat z3) {
     GLfloat Ux, Uy, Uz, Vx, Vy, Vz, Nx, Ny, Nz;
 
     Ux = x2 - x1;
@@ -91,8 +87,7 @@ static void getNormal3p
     glNormal3f(Nx, Ny, Nz);
 }
 
-void updateCamera()
-{
+void updateCamera() {
     // Convert spherical coordinates to Cartesian for look direction
     float radYaw = yaw * M_PI / 180.0f;
     float radPitch = pitch * M_PI / 180.0f;
@@ -103,8 +98,7 @@ void updateCamera()
     refZ = eyeZ + cos(radPitch) * cos(radYaw);
 }
 
-void drawCube()
-{
+void drawCube() {
     glBegin(GL_QUADS);
     for (GLint i = 0; i < 6; i++)
     {
@@ -120,8 +114,7 @@ void drawCube()
 }
 
 // Modified to accept an optional texture ID
-void drawCube1(GLfloat difX, GLfloat difY, GLfloat difZ, GLfloat ambX = 0, GLfloat ambY = 0, GLfloat ambZ = 0, GLfloat shine = 50, GLuint textureID = 0)
-{
+void drawCube1(GLfloat difX, GLfloat difY, GLfloat difZ, GLfloat ambX = 0, GLfloat ambY = 0, GLfloat ambZ = 0, GLfloat shine = 50, GLuint textureID = 0) {
     GLfloat no_mat[] = { 0.0f, 0.0f, 0.0f, 1.0f };
     GLfloat mat_ambient[] = { ambX, ambY, ambZ, 1.0f };
     GLfloat mat_diffuse[] = { difX, difY, difZ, 1.0f };
@@ -166,8 +159,7 @@ void drawCube1(GLfloat difX, GLfloat difY, GLfloat difZ, GLfloat ambX = 0, GLflo
 }
 
 
-static GLfloat v_trapezoid[8][3] =
-{
+static GLfloat v_trapezoid[8][3] = {
     {0.0f, 0.0f, 0.0f}, //0
     {0.0f, 0.0f, 3.0f}, //1
     {3.0f, 0.0f, 3.0f}, //2
@@ -178,8 +170,7 @@ static GLfloat v_trapezoid[8][3] =
     {2.5f, 3.0f, 0.5f}  //7
 };
 
-static GLubyte TquadIndices[6][4] =
-{
+static GLubyte TquadIndices[6][4] = {
     {0, 1, 2, 3}, //bottom
     {4, 5, 6, 7}, //top
     {5, 1, 2, 6}, //front
@@ -188,8 +179,7 @@ static GLubyte TquadIndices[6][4] =
     {1, 5, 4, 0}  //left is clockwise
 };
 
-void drawTrapezoid(GLfloat difX, GLfloat difY, GLfloat difZ, GLfloat ambX, GLfloat ambY, GLfloat ambZ, GLfloat shine = 50)
-{
+void drawTrapezoid(GLfloat difX, GLfloat difY, GLfloat difZ, GLfloat ambX, GLfloat ambY, GLfloat ambZ, GLfloat shine = 50) {
     GLfloat no_mat[] = { 0.0f, 0.0f, 0.0f, 1.0f };
     GLfloat mat_ambient[] = { ambX, ambY, ambZ, 1.0f };
     GLfloat mat_diffuse[] = { difX, difY, difZ, 1.0f };
@@ -210,8 +200,7 @@ void drawTrapezoid(GLfloat difX, GLfloat difY, GLfloat difZ, GLfloat ambX, GLflo
     }
 
     glBegin(GL_QUADS);
-    for (GLint i = 0; i < 6; i++)
-    {
+    for (GLint i = 0; i < 6; i++) {
         getNormal3p(v_trapezoid[TquadIndices[i][0]][0], v_trapezoid[TquadIndices[i][0]][1], v_trapezoid[TquadIndices[i][0]][2],
             v_trapezoid[TquadIndices[i][1]][0], v_trapezoid[TquadIndices[i][1]][1], v_trapezoid[TquadIndices[i][1]][2],
             v_trapezoid[TquadIndices[i][2]][0], v_trapezoid[TquadIndices[i][2]][1], v_trapezoid[TquadIndices[i][2]][2]);
@@ -224,21 +213,18 @@ void drawTrapezoid(GLfloat difX, GLfloat difY, GLfloat difZ, GLfloat ambX, GLflo
     glEnd();
 }
 
-static GLubyte p_Indices[4][3] =
-{
+static GLubyte p_Indices[4][3] = {
     {4, 1, 2},
     {4, 2, 3},
     {4, 3, 0},
     {4, 0, 1}
 };
 
-static GLubyte PquadIndices[1][4] =
-{
+static GLubyte PquadIndices[1][4] = {
     {0, 3, 2, 1}
 };
 
-void polygon(GLfloat difX, GLfloat difY, GLfloat difZ, GLfloat ambX, GLfloat ambY, GLfloat ambZ, GLfloat shine)
-{
+void polygon(GLfloat difX, GLfloat difY, GLfloat difZ, GLfloat ambX, GLfloat ambY, GLfloat ambZ, GLfloat shine) {
     GLfloat no_mat[] = { 0.0f, 0.0f, 0.0f, 1.0f };
     GLfloat mat_ambient[] = { ambX, ambY, ambZ, 1.0f };
     GLfloat mat_diffuse[] = { difX, difY, difZ, 1.0f };
@@ -265,8 +251,7 @@ void polygon(GLfloat difX, GLfloat difY, GLfloat difZ, GLfloat ambX, GLfloat amb
     glEnd();
 }
 
-void polygonLine(GLfloat difX, GLfloat difY, GLfloat difZ, GLfloat ambX, GLfloat ambY, GLfloat ambZ, GLfloat shine)
-{
+void polygonLine(GLfloat difX, GLfloat difY, GLfloat difZ, GLfloat ambX, GLfloat ambY, GLfloat ambZ, GLfloat shine) {
     GLfloat no_mat[] = { 0.0f, 0.0f, 0.0f, 1.0f };
     GLfloat mat_ambient[] = { ambX, ambY, ambZ, 1.0f };
     GLfloat mat_diffuse[] = { difX, difY, difZ, 1.0f };
@@ -293,8 +278,7 @@ void polygonLine(GLfloat difX, GLfloat difY, GLfloat difZ, GLfloat ambX, GLfloat
     glEnd();
 }
 
-void drawSphere(GLfloat difX, GLfloat difY, GLfloat difZ, GLfloat ambX, GLfloat ambY, GLfloat ambZ, GLfloat shine = 90)
-{
+void drawSphere(GLfloat difX, GLfloat difY, GLfloat difZ, GLfloat ambX, GLfloat ambY, GLfloat ambZ, GLfloat shine = 90) {
     GLfloat no_mat[] = { 0.0f, 0.0f, 0.0f, 1.0f };
     GLfloat mat_ambient[] = { ambX, ambY, ambZ, 1.0f };
     GLfloat mat_diffuse[] = { difX, difY, difZ, 1.0f };
@@ -320,7 +304,6 @@ void loadAllTextures() {
     if (!woodTexture) {
         printf("Wood texture loading failed: %s\n", SOIL_last_result());
     }
-
     // Load carpet texture
     carpetTexture = SOIL_load_OGL_texture(
         "carpet.jpg",
@@ -331,7 +314,6 @@ void loadAllTextures() {
     if (!carpetTexture) {
         printf("Carpet texture loading failed: %s\n", SOIL_last_result());
     }
-
     // Load floor texture
     floorTexture = SOIL_load_OGL_texture(
         "floor.jpg",
@@ -342,7 +324,6 @@ void loadAllTextures() {
     if (!floorTexture) {
         printf("Floor texture loading failed: %s\n", SOIL_last_result());
     }
-
     // Load poster texture
     posterTexture = SOIL_load_OGL_texture(
         "image.jpg",
@@ -360,8 +341,7 @@ void loadAllTextures() {
 void drawTexturedCube(GLfloat width, GLfloat height, GLfloat depth,
     GLfloat difX, GLfloat difY, GLfloat difZ,
     GLfloat ambX = 0.2f, GLfloat ambY = 0.1f, GLfloat ambZ = 0.05f,
-    GLfloat shine = 30)
-{
+    GLfloat shine = 30) {
     GLfloat no_mat[] = { 0.0f, 0.0f, 0.0f, 1.0f };
     GLfloat mat_ambient[] = { ambX, ambY, ambZ, 1.0f };
     GLfloat mat_diffuse[] = { difX, difY, difZ, 1.0f };
@@ -426,8 +406,7 @@ void drawTexturedCube(GLfloat width, GLfloat height, GLfloat depth,
 }
 
 // House door function with a spherical doorknob
-void drawHouseDoor()
-{
+void drawHouseDoor() {
     glPushMatrix();
 
     // Position the entire door assembly on the front wall
@@ -497,23 +476,19 @@ void updateDoorAnimation()
         if (doorAngle >= 90.0f) {
             doorAngle = 90.0f;
             doorOpening = false;
-            std::cout << "Door opened!" << std::endl;
         }
         glutPostRedisplay();
-    }
-    else if (doorClosing && doorAngle > 0.0f) {
+    }else if (doorClosing && doorAngle > 0.0f) {
         doorAngle -= doorSpeed;
         if (doorAngle <= 0.0f) {
             doorAngle = 0.0f;
             doorClosing = false;
-            std::cout << "Door closed!" << std::endl;
         }
         glutPostRedisplay();
     }
 }
 
-void cupboard()
-{
+void cupboard() {
     //Cupboard/Almari
     glPushMatrix();
     glTranslatef(-1.0f, 0.0f, -1.0f);
@@ -610,8 +585,7 @@ void cupboard()
     glPopMatrix();
 }
 
-void room()
-{
+void room() {
     // back wall
     glPushMatrix();
     glTranslatef(-1.5f, -1, .5f);
@@ -671,8 +645,7 @@ void room()
     glPopMatrix();
 }
 
-void bed()
-{
+void bed() {
     //bed headboard
     glPushMatrix();
     glScalef(0.1f, 0.5f, 0.9f);
@@ -718,8 +691,7 @@ void bed()
     glPopMatrix();
 }
 
-void bedsideDrawer()
-{
+void bedsideDrawer() {
     //bedside drawer
 
     //side drawer
@@ -744,8 +716,7 @@ void bedsideDrawer()
     glPopMatrix();
 }
 
-void lamp()
-{
+void lamp() {
     //lamp base
     glPushMatrix();
     glTranslatef(.6f, 0.5f, 8.95f);
@@ -768,8 +739,7 @@ void lamp()
     glPopMatrix();
 }
 
-void drawPoster()
-{
+void drawPoster() {
     glPushMatrix();
     glTranslatef(-1.0f, 1.5f, 11.0f);
 
@@ -835,8 +805,7 @@ void drawPoster()
 
 
 // Draws a textured quad for the carpet on the floor.
-void drawCarpet()
-{
+void drawCarpet() {
     glPushMatrix();
     glTranslatef(3.0f, -0.199f, 7.0f);
 
@@ -866,8 +835,7 @@ void drawCarpet()
     glPopMatrix();
 }
 
-void wardrobe()
-{
+void wardrobe() {
     //wardrobe
     glPushMatrix();
     glTranslatef(0, 0, 4);
@@ -932,8 +900,7 @@ void wardrobe()
     glPopMatrix();
 }
 
-void dressingTable()
-{
+void dressingTable() {
     //Dressing table
     glPushMatrix();
     glTranslatef(-0.5f,0.0f,-0.2f);
@@ -1079,8 +1046,7 @@ void dressingTable()
     glPopMatrix();
 }
 
-void Clock()
-{
+void Clock() {
     //clock body
     glPushMatrix();
     glTranslatef(-0.9f, 1.8f, 7.87f);
@@ -1127,8 +1093,7 @@ void Clock()
     glPopMatrix();
 }
 
-void window()
-{
+void window() {
     const GLfloat winX = -1.49f; // X position on the wall
     const GLfloat winY = 1.0f;   // Y position (bottom edge)
     const GLfloat winZ = 8.9f;   // Z position (right edge)
@@ -1191,8 +1156,7 @@ void window()
     glPopMatrix();
 }
 
-void drawWoodenStool()
-{
+void drawWoodenStool() {
     glPushMatrix();
     // Position the stool
     glTranslatef(5.0f, -0.2f, 10.0f);
@@ -1236,8 +1200,7 @@ void drawWoodenStool()
     glPopMatrix();
 }
 
-void drawCeilingFan()
-{
+void drawCeilingFan() {
     glPushMatrix();
     // Position the fan in the center of the ceiling
     glTranslatef(2.5f, 4.8f, 7.5f);
@@ -1286,13 +1249,11 @@ void drawCeilingFan()
         glPopMatrix();
     }
     glPopMatrix(); // End rotating part
-
     glPopMatrix(); // End fan
 }
 
 
-void lightBulb()
-{
+void lightBulb() {
     GLfloat no_mat[] = { 0.0f, 0.0f, 0.0f, 1.0f };
     GLfloat mat_ambient[] = { 0.7f, 0.7f, 0.7f, 1.0f };
     GLfloat mat_ambient_color[] = { 0.8f, 0.8f, 0.2f, 1.0f };
@@ -1300,7 +1261,6 @@ void lightBulb()
     GLfloat mat_specular[] = { 1.0f, 1.0f, 1.0f, 1.0f };
     GLfloat high_shininess[] = { 100.0f };
     GLfloat mat_emission[] = { 1.000f, 1, 1, 0.0f };
-
     glPushMatrix();
     glTranslatef(5, 5, 8);
     glScalef(0.2f, 0.2f, 0.2f);
@@ -1308,22 +1268,19 @@ void lightBulb()
     glMaterialfv(GL_FRONT, GL_DIFFUSE, mat_diffuse);
     glMaterialfv(GL_FRONT, GL_SPECULAR, no_mat);
     glMaterialfv(GL_FRONT, GL_SHININESS, high_shininess);
-
     if (switchOne == GL_TRUE) {
         glMaterialfv(GL_FRONT, GL_EMISSION, mat_emission);
     }
     else {
         glMaterialfv(GL_FRONT, GL_EMISSION, no_mat);
     }
-
     glutSolidSphere(1.0, 16, 16);
     glPopMatrix();
 }
 
 
 
-void lightBulb3()
-{
+void lightBulb3() {
     GLfloat no_mat[] = { 0.0f, 0.0f, 0.0f, 1.0f };
     GLfloat mat_ambient[] = { 0.7f, 0.7f, 0.7f, 1.0f };
     GLfloat mat_ambient_color[] = { 0.8f, 0.8f, 0.2f, 1.0f };
@@ -1348,8 +1305,7 @@ void lightBulb3()
     glPopMatrix();
 }
 
-void lightOne()
-{
+void lightOne() {
     glPushMatrix();
     GLfloat light_ambient[] = { 0.5f, 0.5f, 0.5f, 1.0f };
     GLfloat light_diffuse[] = { 1.0f, 1.0f, 1.0f, 1.0f };
@@ -1373,8 +1329,7 @@ void lightOne()
     glPopMatrix();
 }
 
-void lampLight()
-{
+void lampLight() {
     glPushMatrix();
     GLfloat light_ambient[] = { 0.5f, 0.5f, 0.5f, 1.0f };
     GLfloat light_diffuse[] = { 1.0f, 1.0f, 1.0f, 1.0f };
@@ -1400,12 +1355,9 @@ void lampLight()
     glPopMatrix();
 }
 
-
 // FPS Camera Movement Functions
-void processMovement()
-{
+void processMovement() {
     float radYaw = yaw * M_PI / 180.0f;
-
     // Forward/Backward movement
     if (keys['w'] || keys['W']) {
         eyeX += sin(radYaw) * cameraSpeed;
@@ -1415,7 +1367,6 @@ void processMovement()
         eyeX -= sin(radYaw) * cameraSpeed;
         eyeZ -= cos(radYaw) * cameraSpeed;
     }
-
     // Strafe left/right
     if (keys['a'] || keys['A']) {
         eyeX += cos(radYaw) * cameraSpeed;
@@ -1425,7 +1376,6 @@ void processMovement()
         eyeX -= cos(radYaw) * cameraSpeed;
         eyeZ += sin(radYaw) * cameraSpeed;
     }
-
     // Vertical movement
     if (keys['q'] || keys['Q']) {
         eyeY += cameraSpeed;
@@ -1433,65 +1383,49 @@ void processMovement()
     if (keys['e'] || keys['E']) {
         eyeY -= cameraSpeed;
     }
-
     updateCamera();
 }
 
 // Mouse motion callback for FPS camera
-void mouseMotion(int x, int y)
-{
+void mouseMotion(int x, int y) {
     if (!mouseActive) return;
-
     int deltaX = x - lastMouseX;
     int deltaY = y - lastMouseY;
-
     // Mouse sensitivity
     float sensitivity = 0.2f;
-
     // rotation angles
     yaw -= deltaX * sensitivity;
     pitch -= deltaY * sensitivity;
-
     // Clamp pitch to prevent camera flipping
     if (pitch > 89.0f) pitch = 89.0f;
     if (pitch < -89.0f) pitch = -89.0f;
-
     // Wrap yaw around 360 degrees
     if (yaw > 360.0f) yaw -= 360.0f;
     if (yaw < 0.0f) yaw += 360.0f;
-
     // Update camera
     updateCamera();
-
     // Warp mouse back to center to prevent hitting screen edges
     int centerX = windowWidth / 2;
     int centerY = windowHeight / 2;
-
     glutWarpPointer(centerX, centerY);
     lastMouseX = centerX;
     lastMouseY = centerY;
-
     glutPostRedisplay();
 }
 
 // Passive mouse motion (when no button pressed)
-void mousePassiveMotion(int x, int y)
-{
+void mousePassiveMotion(int x, int y) {
     mouseMotion(x, y);
 }
 
-void display(void)
-{
+void display(void) {
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-
     glMatrixMode(GL_PROJECTION);
     glLoadIdentity();
     gluPerspective(60, (GLfloat)windowWidth / (GLfloat)windowHeight, 1, 100);
-
     glMatrixMode(GL_MODELVIEW);
     glLoadIdentity();
     gluLookAt(eyeX, eyeY, eyeZ, refX, refY, refZ, 0, 1, 0);
-
     glEnable(GL_LIGHTING);
     lightOne();
     lampLight();
@@ -1512,17 +1446,13 @@ void display(void)
     drawHouseDoor();
     //lightBulb3();
     glDisable(GL_LIGHTING);
-
     glFlush();
     glutSwapBuffers();
 }
 
-void myKeyboardFunc(unsigned char key, int x, int y)
-{
+void myKeyboardFunc(unsigned char key, int x, int y) {
     keys[key] = true;  // Mark key as pressed
-
-    switch (key)
-    {
+    switch (key) {
     case 27:   // ESC key - toggle mouse capture
         mouseActive = !mouseActive;
         if (mouseActive) {
@@ -1533,28 +1463,22 @@ void myKeyboardFunc(unsigned char key, int x, int y)
             glutWarpPointer(centerX, centerY);
             lastMouseX = centerX;
             lastMouseY = centerY;
-            std::cout << "Mouse captured - ESC to release" << std::endl;
         }
         else {
             glutSetCursor(GLUT_CURSOR_LEFT_ARROW);
-            std::cout << "Mouse released - ESC to capture again" << std::endl;
         }
         break;
-
     case 'f':
     case 'F':
         if (doorAngle < 90.0f) {
             doorOpening = true;
             doorClosing = false;
-            std::cout << "Opening door..." << std::endl;
         }
         else if (doorAngle > 0.0f) {
             doorClosing = true;
             doorOpening = false;
-            std::cout << "Closing door..." << std::endl;
         }
         break;
-
     case '1': // Master switch for Light One
         switchOne = !switchOne; // Toggles between True and False
         break;
@@ -1571,124 +1495,73 @@ void myKeyboardFunc(unsigned char key, int x, int y)
         std::cout << "Camera reset to default position" << std::endl;
         break;
     }
-
     glutPostRedisplay();
 }
 
-void myKeyboardUpFunc(unsigned char key, int x, int y)
-{
+void myKeyboardUpFunc(unsigned char key, int x, int y) {
     keys[key] = false;  // Mark key as released
 }
 
-void animate()
-{
+void animate() {
     // Process continuous movement
     processMovement();
-
     updateDoorAnimation();
-
     // fan rotation
     fanRotationAngle += fanSpeed;
     if (fanRotationAngle > 360.0f) {
         fanRotationAngle -= 360.0f;
     }
-
-    if (redFlag == GL_TRUE)
-    {
+    if (redFlag == GL_TRUE) {
         theta += 0.5; // Slower speed
         z -= 0.005;  // Adjusted z-movement to match slower speed
-        if (theta >= 196 && theta <= 210)
-        {
+        if (theta >= 196 && theta <= 210) {
             y = 1.44;
-        }
-        else if (theta >= 180 && theta <= 194)
-        {
+        } else if (theta >= 180 && theta <= 194) {
             y = 1.42;
-        }
-        else if (theta >= 180 && theta <= 194)
-        {
+        } else if (theta >= 180 && theta <= 194) {
             y = 1.4;
-        }
-        else if (theta >= 164 && theta <= 178)
-        {
+        } else if (theta >= 164 && theta <= 178) {
             y = 1.42;
         }
-
-        if (theta >= 210)
-        {
+        if (theta >= 210) {
             redFlag = GL_FALSE;
         }
-    }
-    else if (redFlag == GL_FALSE)
-    {
+    } else if (redFlag == GL_FALSE) {
         theta -= 0.5; // speed
         z += 0.005;
-
-        if (theta >= 196 && theta <= 210)
-        {
+        if (theta >= 196 && theta <= 210) {
             y = 1.44;
-        }
-        else if (theta >= 180 && theta <= 194)
-        {
+        } else if (theta >= 180 && theta <= 194) {
             y = 1.42;
-        }
-        else if (theta >= 180 && theta <= 194)
-        {
+        } else if (theta >= 180 && theta <= 194) {
             y = 1.4;
-        }
-        else if (theta >= 164 && theta <= 178)
-        {
+        } else if (theta >= 164 && theta <= 178) {
             y = 1.42;
         }
-
-        if (theta <= 150)
-        {
+        if (theta <= 150) {
             redFlag = GL_TRUE;
         }
     }
     glutPostRedisplay();
 }
 
-void fullScreen(int w, int h)
-{
+void fullScreen(int w, int h) {
     windowWidth = w;
     windowHeight = h;
-
-    //Prevent a divide by zero, when window is too short;you cant make a window of zero width.
     if (h == 0)
         h = 1;
-    float ratio = (GLfloat)w / (GLfloat)h;       //Calculate aspect ratio of the window
-
+    float ratio = (GLfloat)w / (GLfloat)h;
     //Set the perspective coordinate system
     glMatrixMode(GL_PROJECTION);           //Use the Projection Matrix
     glLoadIdentity();                   //Reset Matrix
-
     glViewport(0, 0, w, h);       //Set the viewport to be the entire window
-    gluPerspective(60, ratio, 1, 500); //Set the correct perspective.
+    gluPerspective(60, ratio, 1, 100); //Set the correct perspective.
     glMatrixMode(GL_MODELVIEW);           //Get Back to the Modelview
 }
 
-int main(int argc, char** argv)
-{
+int main(int argc, char** argv) {
     glutInit(&argc, argv);
-
-    std::cout << "=== FPS CAMERA CONTROLS ===" << std::endl;
-    std::cout << "WASD: Move forward/left/backward/right" << std::endl;
-    std::cout << "QE: Move up/down" << std::endl;
-    std::cout << "Mouse: Look around (FPS style)" << std::endl;
-    std::cout << "ESC: Toggle mouse capture (release mouse to close window)" << std::endl;
-    std::cout << "R: Reset camera to default position" << std::endl;
-    std::cout << "=== DOOR CONTROLS ===" << std::endl;
-    std::cout << "F: Open/Close the door" << std::endl;
-    std::cout << "      " << std::endl;
-    std::cout << "=== LIGHTING CONTROLS ===" << std::endl;
-    std::cout << "1: Turn ON/OFF Main Light" << std::endl;
-    std::cout << "3: Turn ON/OFF Lamp Light" << std::endl;
-    std::cout << "____________________" << std::endl;
-    std::cout << "____________________" << std::endl;
-
     glutInitDisplayMode(GLUT_DOUBLE | GLUT_RGB | GLUT_DEPTH);
-
     glutInitWindowPosition(10, 10);
     glutInitWindowSize((int)windowWidth, (int)windowHeight);
     glutCreateWindow("Bedroom - FPS Controls");
@@ -1696,7 +1569,6 @@ int main(int argc, char** argv)
     glShadeModel(GL_SMOOTH);
     glEnable(GL_DEPTH_TEST);
     glEnable(GL_NORMALIZE);
-
     // Load all textures
     loadAllTextures();
 
@@ -1714,6 +1586,5 @@ int main(int argc, char** argv)
     glutPassiveMotionFunc(mousePassiveMotion);
     glutIdleFunc(animate);
     glutMainLoop();
-
     return 0;
 }
