@@ -1,19 +1,9 @@
-#define GLUT_DISABLE_ATEXIT_HACK
-
-// Fix for exit() function redefinition issue
-#ifdef _WIN32
-#ifndef NOMINMAX
-#define NOMINMAX
-#endif
-#include <windows.h>
-#endif
 #define _USE_MATH_DEFINES
+
+#include <cmath>
+#include <cstdio>
 #include <glut.h>
 #include <SOIL2.h>
-#include <cstdlib>
-#include <cstdio>
-#include <iostream>
-#include <cmath>
 
 // Camera variables for FPS controls
 bool mouseActive = true;    // Mouse captured by default
@@ -96,21 +86,6 @@ void updateCamera() {
     refX = eyeX + cos(radPitch) * sin(radYaw);
     refY = eyeY + sin(radPitch);
     refZ = eyeZ + cos(radPitch) * cos(radYaw);
-}
-
-void drawCube() {
-    glBegin(GL_QUADS);
-    for (GLint i = 0; i < 6; i++)
-    {
-        getNormal3p(v_cube[quadIndices[i][0]][0], v_cube[quadIndices[i][0]][1], v_cube[quadIndices[i][0]][2],
-            v_cube[quadIndices[i][1]][0], v_cube[quadIndices[i][1]][1], v_cube[quadIndices[i][1]][2],
-            v_cube[quadIndices[i][2]][0], v_cube[quadIndices[i][2]][1], v_cube[quadIndices[i][2]][2]);
-        glVertex3fv(&v_cube[quadIndices[i][0]][0]);
-        glVertex3fv(&v_cube[quadIndices[i][1]][0]);
-        glVertex3fv(&v_cube[quadIndices[i][2]][0]);
-        glVertex3fv(&v_cube[quadIndices[i][3]][0]);
-    }
-    glEnd();
 }
 
 // Modified to accept an optional texture ID
@@ -1492,7 +1467,6 @@ void myKeyboardFunc(unsigned char key, int x, int y) {
         eyeX = 2.8; eyeY = 2.0; eyeZ = 16.0;
         yaw = 180.0f; pitch = 0.0f;
         updateCamera();
-        std::cout << "Camera reset to default position" << std::endl;
         break;
     }
     glutPostRedisplay();
