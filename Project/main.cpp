@@ -26,7 +26,7 @@ float cameraSpeed = 0.05f;
 bool keys[256] = { false }; // Track key states for smooth movement
 
 // Original variables
-GLboolean redFlag = GL_TRUE, switchOne = GL_FALSE, switchTwo = GL_FALSE, switchLamp = GL_FALSE, amb1 = GL_TRUE, diff1 = GL_TRUE, spec1 = GL_TRUE, amb2 = GL_TRUE, diff2 = GL_TRUE, spec2 = GL_TRUE, amb3 = GL_TRUE, diff3 = GL_TRUE, spec3 = GL_TRUE;
+GLboolean redFlag = GL_TRUE, switchOne = GL_FALSE, switchTwo = GL_FALSE, switchLamp = GL_FALSE, amb1 = GL_TRUE, diff1 = GL_TRUE, spec1 = GL_TRUE, amb3 = GL_TRUE, diff3 = GL_TRUE, spec3 = GL_TRUE;
 double windowHeight = 680, windowWidth = 1340;
 // Initial camera position to be outside, in front of the door
 double eyeX = 2.8, eyeY = 2.0, eyeZ = 20.0, refX = 0, refY = 0, refZ = 0;
@@ -45,7 +45,6 @@ const float fanSpeed = 2.5f;
 // Texture IDs
 GLuint woodTexture;      // Texture for the door
 GLuint posterTexture;    // Texture for the poster
-GLuint posterTexture2;   // Texture for the second poster
 GLuint carpetTexture;    // Texture for the carpet
 GLuint floorTexture;     // Texture for the floor
 
@@ -352,17 +351,6 @@ void loadAllTextures() {
     );
     if (!posterTexture) {
         printf("Poster texture (image.jpg) loading failed: %s\n", SOIL_last_result());
-    }
-
-    // Load second poster texture
-    posterTexture2 = SOIL_load_OGL_texture(
-        "image2.jpg",
-        SOIL_LOAD_AUTO,
-        SOIL_CREATE_NEW_ID,
-        SOIL_FLAG_MIPMAPS | SOIL_FLAG_INVERT_Y
-    );
-    if (!posterTexture2) {
-        printf("Poster texture (image2.jpg) loading failed: %s\n", SOIL_last_result());
     }
 }
 
@@ -782,7 +770,7 @@ void lamp()
 void drawPoster()
 {
     glPushMatrix();
-    glTranslatef(-1.0f, 1.4f, 4.6f);
+    glTranslatef(-1.0f, 1.5f, 11.0f);
 
     float height = 1.95f;
     float width = 2.4f;
@@ -844,70 +832,6 @@ void drawPoster()
     glPopMatrix();
 }
 
-void drawPoster2()
-{
-    glPushMatrix();
-    glTranslatef(-1.0f, 1.5f, 11.0f);
-
-    float height = 2.0f;
-    float width = 1.5f; // This is the dimension along the Z-axis
-    float frameThickness = 0.1f;
-    float frameDepth = 0.05f; // How far it sticks out from the wall (along X)
-
-    // --- Draw the frame ---
-    GLfloat frameDif[] = { 0.3f, 0.15f, 0.05f };
-    GLfloat frameAmb[] = { 0.15f, 0.075f, 0.025f };
-
-    // Bottom frame piece (oriented for YZ plane)
-    glPushMatrix();
-    glTranslatef(0.0f, -frameThickness, -frameThickness);
-    glScalef(frameDepth / 3.0f, frameThickness / 3.0f, (width + 2 * frameThickness) / 3.0f);
-    drawCube1(frameDif[0], frameDif[1], frameDif[2], frameAmb[0], frameAmb[1], frameAmb[2]);
-    glPopMatrix();
-
-    // Top frame piece
-    glPushMatrix();
-    glTranslatef(0.0f, height, -frameThickness);
-    glScalef(frameDepth / 3.0f, frameThickness / 3.0f, (width + 2 * frameThickness) / 3.0f);
-    drawCube1(frameDif[0], frameDif[1], frameDif[2], frameAmb[0], frameAmb[1], frameAmb[2]);
-    glPopMatrix();
-
-    // Left frame piece
-    glPushMatrix();
-    glTranslatef(0.0f, -frameThickness, -frameThickness);
-    glScalef(frameDepth / 3.0f, (height + 2 * frameThickness) / 3.0f, frameThickness / 3.0f);
-    drawCube1(frameDif[0], frameDif[1], frameDif[2], frameAmb[0], frameAmb[1], frameAmb[2]);
-    glPopMatrix();
-
-    // Right frame piece
-    glPushMatrix();
-    glTranslatef(0.0f, -frameThickness, width);
-    glScalef(frameDepth / 3.0f, (height + 2 * frameThickness) / 3.0f, frameThickness / 3.0f);
-    drawCube1(frameDif[0], frameDif[1], frameDif[2], frameAmb[0], frameAmb[1], frameAmb[2]);
-    glPopMatrix();
-
-    // --- Draw the poster image ---
-    GLfloat mat_ambient[] = { 0.8f, 0.8f, 0.8f, 1.0f };
-    GLfloat mat_diffuse[] = { 1.0f, 1.0f, 1.0f, 1.0f };
-    GLfloat mat_specular[] = { 0.1f, 0.1f, 0.1f, 1.0f };
-    glMaterialfv(GL_FRONT, GL_AMBIENT, mat_ambient);
-    glMaterialfv(GL_FRONT, GL_DIFFUSE, mat_diffuse);
-    glMaterialfv(GL_FRONT, GL_SPECULAR, mat_specular);
-
-    glEnable(GL_TEXTURE_2D);
-    glBindTexture(GL_TEXTURE_2D, posterTexture2); // Use the second texture
-
-    glBegin(GL_QUADS);
-    glNormal3f(1.0f, 0.0f, 0.0f);
-    glTexCoord2f(0.0f, 0.0f); glVertex3f(0.0f, 0.0f, 0.0f);
-    glTexCoord2f(1.0f, 0.0f); glVertex3f(0.0f, 0.0f, width);
-    glTexCoord2f(1.0f, 1.0f); glVertex3f(0.0f, height, width);
-    glTexCoord2f(0.0f, 1.0f); glVertex3f(0.0f, height, 0.0f);
-    glEnd();
-
-    glDisable(GL_TEXTURE_2D);
-    glPopMatrix();
-}
 
 // Draws a textured quad for the carpet on the floor.
 void drawCarpet()
@@ -1366,7 +1290,7 @@ void drawCeilingFan()
 }
 
 
-void lightBulb1()
+void lightBulb()
 {
     GLfloat no_mat[] = { 0.0f, 0.0f, 0.0f, 1.0f };
     GLfloat mat_ambient[] = { 0.7f, 0.7f, 0.7f, 1.0f };
@@ -1395,31 +1319,7 @@ void lightBulb1()
     glPopMatrix();
 }
 
-void lightBulb2()
-{
-    GLfloat no_mat[] = { 0.0f, 0.0f, 0.0f, 1.0f };
-    GLfloat mat_ambient[] = { 0.7f, 0.7f, 0.7f, 1.0f };
-    GLfloat mat_ambient_color[] = { 0.8f, 0.8f, 0.2f, 1.0f };
-    GLfloat mat_diffuse[] = { 1.000f, 0.843f, 0.000f, 1.0f };
-    GLfloat high_shininess[] = { 100.0f };
-    GLfloat mat_emission[] = { 1, 1, 1, 1.0f };
 
-    glPushMatrix();
-    glTranslatef(0, 5, 8);
-    glScalef(0.2f, 0.2f, 0.2f);
-    glMaterialfv(GL_FRONT, GL_AMBIENT, no_mat);
-    glMaterialfv(GL_FRONT, GL_DIFFUSE, mat_diffuse);
-    glMaterialfv(GL_FRONT, GL_SPECULAR, no_mat);
-    glMaterialfv(GL_FRONT, GL_SHININESS, high_shininess);
-    if (switchTwo == GL_TRUE) {
-        glMaterialfv(GL_FRONT, GL_EMISSION, mat_emission);
-    }
-    else {
-        glMaterialfv(GL_FRONT, GL_EMISSION, no_mat);
-    }
-    glutSolidSphere(1.0, 16, 16);
-    glPopMatrix();
-}
 
 void lightBulb3()
 {
@@ -1466,28 +1366,6 @@ void lightOne()
     else { glLightfv(GL_LIGHT0, GL_SPECULAR, no_light); }
 
     glLightfv(GL_LIGHT0, GL_POSITION, light_position);
-    glPopMatrix();
-}
-
-void lightTwo()
-{
-    glPushMatrix();
-    GLfloat no_light[] = { 0.0f, 0.0f, 0.0f, 1.0f };
-    GLfloat light_ambient[] = { 0.5f, 0.5f, 0.5f, 1.0f };
-    GLfloat light_diffuse[] = { 1.0f, 1.0f, 0.9f, 1.0f };
-    GLfloat light_specular[] = { 1.0f, 1.0f, 1.0f, 1.0f };
-    GLfloat light_position[] = { 0.0f, 5.0f, 8.0f, 1.0f };
-
-    if (amb2 == GL_TRUE) { glLightfv(GL_LIGHT1, GL_AMBIENT, light_ambient); }
-    else { glLightfv(GL_LIGHT1, GL_AMBIENT, no_light); }
-
-    if (diff2 == GL_TRUE) { glLightfv(GL_LIGHT1, GL_DIFFUSE, light_diffuse); }
-    else { glLightfv(GL_LIGHT1, GL_DIFFUSE, no_light); }
-
-    if (spec2 == GL_TRUE) { glLightfv(GL_LIGHT1, GL_SPECULAR, light_specular); }
-    else { glLightfv(GL_LIGHT1, GL_SPECULAR, no_light); }
-
-    glLightfv(GL_LIGHT1, GL_POSITION, light_position);
     glPopMatrix();
 }
 
@@ -1609,7 +1487,6 @@ void display(void)
 
     glEnable(GL_LIGHTING);
     lightOne();
-    lightTwo();
     lampLight();
     room();
     drawCarpet();
@@ -1617,7 +1494,6 @@ void display(void)
     bedsideDrawer();
     lamp();
     drawPoster();
-    drawPoster2();
     wardrobe();
     cupboard();
     dressingTable();
@@ -1625,8 +1501,7 @@ void display(void)
     window();
     drawWoodenStool();
     drawCeilingFan();
-    lightBulb1();
-    lightBulb2();
+    lightBulb();
     drawHouseDoor();
     //lightBulb3();
     glDisable(GL_LIGHTING);
@@ -1681,17 +1556,6 @@ void myKeyboardFunc(unsigned char key, int x, int y)
         {
             switchOne = GL_FALSE; amb1 = GL_FALSE; diff1 = GL_FALSE; spec1 = GL_FALSE; glDisable(GL_LIGHT0); break;
         }
-    case '2': //to turn on and off light two
-        if (switchTwo == GL_FALSE)
-        {
-            switchTwo = GL_TRUE; amb2 = GL_TRUE; diff2 = GL_TRUE; spec2 = GL_TRUE;
-            glEnable(GL_LIGHT1); break;
-        }
-        else if (switchTwo == GL_TRUE)
-        {
-            switchTwo = GL_FALSE; amb2 = GL_FALSE; diff2 = GL_FALSE; spec2 = GL_FALSE;
-            glDisable(GL_LIGHT1); break;
-        }
     case '3': //to turn on and off lamp light
         if (switchLamp == GL_FALSE)
         {
@@ -1712,15 +1576,6 @@ void myKeyboardFunc(unsigned char key, int x, int y)
     case'6':
         if (spec1 == GL_FALSE) { spec1 = GL_TRUE; break; }
         else { spec1 = GL_FALSE; break; }
-    case'7': //turn on/off ambient light 2
-        if (amb2 == GL_FALSE) { amb2 = GL_TRUE; break; }
-        else { amb2 = GL_FALSE; break; }
-    case'8':
-        if (diff2 == GL_FALSE) { diff2 = GL_TRUE; break; }
-        else { diff2 = GL_FALSE; break; }
-    case'9':
-        if (spec2 == GL_FALSE) { spec2 = GL_TRUE; break; }
-        else { spec2 = GL_FALSE; break; }
     case'0': //turn on/off ambient lamp light
         if (amb3 == GL_FALSE) { amb3 = GL_TRUE; break; }
         else { amb3 = GL_FALSE; break; }
