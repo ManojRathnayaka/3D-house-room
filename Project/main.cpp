@@ -31,12 +31,15 @@ const float doorSpeed = 2.0f; // Degrees per frame
 // Ceiling Fan Rotation
 float fanRotationAngle = 0.0f;
 const float fanSpeed = 2.5f;
+bool isFanOn = false;
 
 // Texture IDs
 GLuint woodTexture;      // Texture for the door
 GLuint posterTexture;    // Texture for the poster
 GLuint carpetTexture;    // Texture for the carpet
 GLuint floorTexture;     // Texture for the floor
+
+GLUquadric* quad = NULL;
 
 static GLfloat v_cube[8][3] = {
     {0.0f, 0.0f, 0.0f}, //0
@@ -58,8 +61,7 @@ static GLubyte quadIndices[6][4] = {
     {1, 5, 4, 0}  //left is clockwise
 };
 
-static void getNormal3p
-(GLfloat x1, GLfloat y1, GLfloat z1, GLfloat x2, GLfloat y2, GLfloat z2, GLfloat x3, GLfloat y3, GLfloat z3) {
+static void getNormal3p (GLfloat x1, GLfloat y1, GLfloat z1, GLfloat x2, GLfloat y2, GLfloat z2, GLfloat x3, GLfloat y3, GLfloat z3) {
     GLfloat Ux, Uy, Uz, Vx, Vy, Vz, Nx, Ny, Nz;
 
     Ux = x2 - x1;
@@ -132,7 +134,6 @@ void drawCube1(GLfloat difX, GLfloat difY, GLfloat difZ, GLfloat ambX = 0, GLflo
         glDisable(GL_TEXTURE_2D);
     }
 }
-
 
 static GLfloat v_trapezoid[8][3] = {
     {0.0f, 0.0f, 0.0f}, //0
@@ -1175,56 +1176,86 @@ void drawWoodenStool() {
     glPopMatrix();
 }
 
-void drawCeilingFan() {
-    glPushMatrix();
-    // Position the fan in the center of the ceiling
-    glTranslatef(2.5f, 4.8f, 7.5f);
+// Helper to set materials similar to your drawCube1 function
+void setMaterial(GLfloat difX, GLfloat difY, GLfloat difZ, GLfloat ambX, GLfloat ambY, GLfloat ambZ, GLfloat shine = 50) {
+    GLfloat mat_ambient[] = { ambX, ambY, ambZ, 1.0f };
+    GLfloat mat_diffuse[] = { difX, difY, difZ, 1.0f };
+    GLfloat mat_specular[] = { 1.0f, 1.0f, 1.0f, 1.0f };
+    GLfloat mat_shininess[] = { shine };
+    GLfloat no_mat[] = { 0.0f, 0.0f, 0.0f, 1.0f };
 
-    // This is the intended center point for the fan assembly, based on the rotation pivot
+    glMaterialfv(GL_FRONT, GL_AMBIENT, mat_ambient);
+    glMaterialfv(GL_FRONT, GL_DIFFUSE, mat_diffuse);
+    glMaterialfv(GL_FRONT, GL_SPECULAR, mat_specular);
+    glMaterialfv(GL_FRONT, GL_SHININESS, mat_shininess);
+    glMaterialfv(GL_FRONT, GL_EMISSION, no_mat);
+}
+
+void drawCeilingFan() {
+    // Basic setup variables
     const float centerX = 0.3f;
     const float centerZ = 0.3f;
 
-    // Fan base attached to the ceiling. Base is 0.3 wide (3.0 * 0.1).
     glPushMatrix();
-    glTranslatef(centerX - 0.15f, 0.0f, centerZ - 0.15f);
-    glScalef(0.1f, 0.1f, 0.1f);
-    drawCube1(0.8f, 0.8f, 0.8f, 0.4f, 0.4f, 0.4f);
+    glTranslatef(2.5f, 5.0f, 7.5f);
+
+    // Base cone shape
+    glPushMatrix();
+    glTranslatef(centerX, 0.0f, centerZ); // Move to center pivot
+
+    // gluCylinder draws along +Z, so we rotate 90 deg on X to point it down
+    glRotatef(90.0f, 1.0f, 0.0f, 0.0f);
+
+    setMaterial(0.8f, 0.8f, 0.8f, 0.4f, 0.4f, 0.4f); // Greyish
+    // BaseRadius=0.15 (ceiling), TopRadius=0.05 (connecting to rod), Height=0.2
+    gluCylinder(quad, 0.15, 0.05, 0.2, 32, 32);
+
+    // Add a disk to close the top against the ceiling
+    gluDisk(quad, 0.0, 0.15, 32, 1);
     glPopMatrix();
 
-    // Rod connecting base to motor. Rod is 0.06 wide (3.0 * 0.02).
+    // Down rod
     glPushMatrix();
-    glTranslatef(centerX - 0.03f, -1.0f, centerZ - 0.03f);
-    glScalef(0.02f, 0.3f, 0.02f);
-    drawCube1(0.7f, 0.7f, 0.7f, 0.35f, 0.35f, 0.35f);
+    glTranslatef(centerX, -0.2f, centerZ); // Start slightly below ceiling
+    glRotatef(90.0f, 1.0f, 0.0f, 0.0f);      // Point down
+
+    setMaterial(0.7f, 0.7f, 0.7f, 0.35f, 0.35f, 0.35f); // Darker grey
+    // Radius=0.03, Height=0.8
+    gluCylinder(quad, 0.03, 0.03, 0.8, 32, 32);
     glPopMatrix();
 
-    // Motor housing. Motor is 0.6 wide (3.0 * 0.2).
+	// Motor housing
     glPushMatrix();
-    glTranslatef(centerX - 0.3f, -1.0f, centerZ - 0.3f);
-    glScalef(0.2f, 0.08f, 0.2f);
-    drawCube1(0.9f, 0.9f, 0.9f, 0.45f, 0.45f, 0.45f);
+    glTranslatef(centerX, -1.0f, centerZ); // End of the rod
+
+    setMaterial(0.9f, 0.9f, 0.9f, 0.45f, 0.45f, 0.45f); // White/Grey
+
+    // Scale it to make it look like a motor (wider than it is tall)
+    glScalef(1.0f, 0.6f, 1.0f);
+    gluSphere(quad, 0.25, 32, 32); // Radius 0.25
     glPopMatrix();
 
-    // Rotating part of the fan
+	// Fan Blades
     glPushMatrix();
-    glTranslatef(centerX, -1.1f, centerZ); // Move pivot to the center of the motor
-    glRotatef(fanRotationAngle, 0.0f, 1.0f, 0.0f); // Rotate around the Y-axis
+    glTranslatef(centerX, -1.1f, centerZ); // Move pivot to bottom of motor
+    glRotatef(fanRotationAngle, 0.0f, 1.0f, 0.0f); // Apply rotation
+
+    setMaterial(0.9f, 0.9f, 0.9f, 0.45f, 0.45f, 0.45f, 50); // High shine blades
 
     // Draw 4 blades
     for (int i = 0; i < 4; ++i) {
         glPushMatrix();
-        // Rotate each blade into position
-        glRotatef(i * 90.0f, 0.0f, 1.0f, 0.0f);
+        glRotatef(i * 90.0f, 0.0f, 1.0f, 0.0f); // Rotate for each blade
 
-        // Position and draw the blade
-        glTranslatef(0.2f, 0.0f, 0.0f); // Move out from the center
-        glScalef(0.6f, 0.01f, 0.15f);
-        // Changed to a solid off-white color and removed texture
-        drawCube1(0.9f, 0.9f, 0.9f, 0.45f, 0.45f, 0.45f, 50);
+        // Move blade out from center slightly
+        glTranslatef(0.35f, 0.0f, 0.0f);
+
+        glScalef(0.6f, 0.02f, 0.15f);
+        gluSphere(quad, 1.0, 32, 32);
         glPopMatrix();
     }
-    glPopMatrix(); // End rotating part
-    glPopMatrix(); // End fan
+    glPopMatrix(); // End rotation loop
+    glPopMatrix(); // End Fan Assembly
 }
 
 
@@ -1252,8 +1283,6 @@ void lightBulb() {
     glutSolidSphere(1.0, 16, 16);
     glPopMatrix();
 }
-
-
 
 void lightBulb3() {
     GLfloat no_mat[] = { 0.0f, 0.0f, 0.0f, 1.0f };
@@ -1463,10 +1492,7 @@ void myKeyboardFunc(unsigned char key, int x, int y) {
         break;
 
     case 'r': case 'R':
-        // Reset camera to default starting position
-        eyeX = 2.8; eyeY = 2.0; eyeZ = 16.0;
-        yaw = 180.0f; pitch = 0.0f;
-        updateCamera();
+        isFanOn = !isFanOn;
         break;
     }
     glutPostRedisplay();
@@ -1481,9 +1507,11 @@ void animate() {
     processMovement();
     updateDoorAnimation();
     // fan rotation
-    fanRotationAngle += fanSpeed;
-    if (fanRotationAngle > 360.0f) {
-        fanRotationAngle -= 360.0f;
+    if (isFanOn) {  // Only rotate if the switch is on
+        fanRotationAngle += fanSpeed;
+        if (fanRotationAngle > 360.0f) {
+            fanRotationAngle -= 360.0f;
+        }
     }
     if (redFlag == GL_TRUE) {
         theta += 0.5; // Slower speed
@@ -1539,6 +1567,10 @@ int main(int argc, char** argv) {
     glutInitWindowPosition(10, 10);
     glutInitWindowSize((int)windowWidth, (int)windowHeight);
     glutCreateWindow("Bedroom - FPS Controls");
+
+    quad = gluNewQuadric();
+    gluQuadricNormals(quad, GLU_SMOOTH);
+    gluQuadricTexture(quad, GL_TRUE);
 
     glShadeModel(GL_SMOOTH);
     glEnable(GL_DEPTH_TEST);
