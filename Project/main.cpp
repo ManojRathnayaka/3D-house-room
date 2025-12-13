@@ -5,176 +5,133 @@
 #include <glut.h>
 #include <SOIL2.h>
 
-// Camera variables for FPS controls
-bool mouseActive = true;    // Mouse captured by default
+// Camera Variables
+bool mouseActive = true;
 int lastMouseX = 0, lastMouseY = 0;
-float yaw = 180.0f;     // Horizontal rotation
-float pitch = 0.0f; // Vertical rotation
+float yaw = 180.0f;
+float pitch = 0.0f;
 float cameraSpeed = 0.05f;
 
-// Movement state
-bool keys[256] = { false }; // Track key states for smooth movement
+// Input State
+bool keys[256] = { false };
 
-// Original variables
+// Scene Variables
 GLboolean redFlag = GL_TRUE;
 bool switchOne = false, switchLamp = false;
 double windowHeight = 680, windowWidth = 1340;
-// Initial camera position to be outside, in front of the door
 double eyeX = 2.8, eyeY = 2.0, eyeZ = 20.0, refX = 0, refY = 0, refZ = 0;
 double theta = 180.0, y = 1.36, z = 7.97888;
 
-float doorAngle = 0.0f; // Door rotation angle (0 = closed, 90 = open)
+// Door Animation Variables
+float doorAngle = 0.0f;
 bool doorOpening = false;
 bool doorClosing = false;
-const float doorSpeed = 2.0f; // Degrees per frame
+const float doorSpeed = 2.0f;
 
-// Ceiling Fan Rotation
+// Fan Animation Variables
 float fanRotationAngle = 0.0f;
 const float fanSpeed = 2.5f;
 bool isFanOn = false;
 
 // Texture IDs
-GLuint woodTexture;      // Texture for the door
-GLuint posterTexture;    // Texture for the poster
-GLuint carpetTexture;    // Texture for the carpet
-GLuint floorTexture;     // Texture for the floor
+GLuint woodTexture;
+GLuint posterTexture;
+GLuint carpetTexture;
+GLuint floorTexture;
 
 GLUquadric* quad = NULL;
 
+// Cube Vertices
 static GLfloat v_cube[8][3] = {
-    {0.0f, 0.0f, 0.0f}, //0
-    {0.0f, 0.0f, 3.0f}, //1
-    {3.0f, 0.0f, 3.0f}, //2
-    {3.0f, 0.0f, 0.0f}, //3
-    {0.0f, 3.0f, 0.0f}, //4
-    {0.0f, 3.0f, 3.0f}, //5
-    {3.0f, 3.0f, 3.0f}, //6
-    {3.0f, 3.0f, 0.0f}  //7
+    {0.0f, 0.0f, 0.0f}, {0.0f, 0.0f, 3.0f}, {3.0f, 0.0f, 3.0f}, {3.0f, 0.0f, 0.0f},
+    {0.0f, 3.0f, 0.0f}, {0.0f, 3.0f, 3.0f}, {3.0f, 3.0f, 3.0f}, {3.0f, 3.0f, 0.0f}
 };
 
 static GLubyte quadIndices[6][4] = {
-    {0, 1, 2, 3}, //bottom
-    {4, 5, 6, 7}, //top
-    {5, 1, 2, 6}, //front
-    {0, 4, 7, 3}, // back is clockwise
-    {2, 3, 7, 6}, //right
-    {1, 5, 4, 0}  //left is clockwise
+    {0, 1, 2, 3}, {4, 5, 6, 7}, {5, 1, 2, 6},
+    {0, 4, 7, 3}, {2, 3, 7, 6}, {1, 5, 4, 0}
 };
 
-static void getNormal3p (GLfloat x1, GLfloat y1, GLfloat z1, GLfloat x2, GLfloat y2, GLfloat z2, GLfloat x3, GLfloat y3, GLfloat z3) {
+// Normal Vector Helper
+static void getNormal3p(GLfloat x1, GLfloat y1, GLfloat z1, GLfloat x2, GLfloat y2, GLfloat z2, GLfloat x3, GLfloat y3, GLfloat z3) {
     GLfloat Ux, Uy, Uz, Vx, Vy, Vz, Nx, Ny, Nz;
-
-    Ux = x2 - x1;
-    Uy = y2 - y1;
-    Uz = z2 - z1;
-
-    Vx = x3 - x1;
-    Vy = y3 - y1;
-    Vz = z3 - z1;
-
+    Ux = x2 - x1; Uy = y2 - y1; Uz = z2 - z1;
+    Vx = x3 - x1; Vy = y3 - y1; Vz = z3 - z1;
     Nx = Uy * Vz - Uz * Vy;
     Ny = Uz * Vx - Ux * Vz;
     Nz = Ux * Vy - Uy * Vx;
-
     glNormal3f(Nx, Ny, Nz);
 }
 
+// Camera Update Logic
 void updateCamera() {
-    // Convert spherical coordinates to Cartesian for look direction
     float radYaw = yaw * M_PI / 180.0f;
     float radPitch = pitch * M_PI / 180.0f;
-
-    // Calculate look-at point based on camera orientation
     refX = eyeX + cos(radPitch) * sin(radYaw);
     refY = eyeY + sin(radPitch);
     refZ = eyeZ + cos(radPitch) * cos(radYaw);
 }
 
-// Modified to accept an optional texture ID
-void drawCube1(GLfloat difX, GLfloat difY, GLfloat difZ, GLfloat ambX = 0, GLfloat ambY = 0, GLfloat ambZ = 0, GLfloat shine = 50, GLuint textureID = 0) {
-    GLfloat no_mat[] = { 0.0f, 0.0f, 0.0f, 1.0f };
+// Material Helper
+void setMaterial(GLfloat difX, GLfloat difY, GLfloat difZ, GLfloat ambX, GLfloat ambY, GLfloat ambZ, GLfloat shine = 50) {
     GLfloat mat_ambient[] = { ambX, ambY, ambZ, 1.0f };
     GLfloat mat_diffuse[] = { difX, difY, difZ, 1.0f };
     GLfloat mat_specular[] = { 1.0f, 1.0f, 1.0f, 1.0f };
     GLfloat mat_shininess[] = { shine };
-
-    // If a texture is provided, make the material color white to not tint the texture
-    if (textureID != 0) {
-        mat_ambient[0] = mat_ambient[1] = mat_ambient[2] = 0.8f;
-        mat_diffuse[0] = mat_diffuse[1] = mat_diffuse[2] = 1.0f;
-    }
+    GLfloat no_mat[] = { 0.0f, 0.0f, 0.0f, 1.0f };
 
     glMaterialfv(GL_FRONT, GL_AMBIENT, mat_ambient);
     glMaterialfv(GL_FRONT, GL_DIFFUSE, mat_diffuse);
     glMaterialfv(GL_FRONT, GL_SPECULAR, mat_specular);
     glMaterialfv(GL_FRONT, GL_SHININESS, mat_shininess);
     glMaterialfv(GL_FRONT, GL_EMISSION, no_mat);
+}
 
+// Basic Cube Drawer
+void drawCube1(GLfloat difX, GLfloat difY, GLfloat difZ, GLfloat ambX = 0, GLfloat ambY = 0, GLfloat ambZ = 0, GLfloat shine = 50, GLuint textureID = 0) {
     if (textureID != 0) {
+        setMaterial(1.0f, 1.0f, 1.0f, 0.8f, 0.8f, 0.8f, shine);
         glEnable(GL_TEXTURE_2D);
         glBindTexture(GL_TEXTURE_2D, textureID);
     }
-
+    else {
+        setMaterial(difX, difY, difZ, ambX, ambY, ambZ, shine);
+    }
     glBegin(GL_QUADS);
-    for (GLint i = 0; i < 6; i++)
-    {
+    for (GLint i = 0; i < 6; i++) {
         getNormal3p(v_cube[quadIndices[i][0]][0], v_cube[quadIndices[i][0]][1], v_cube[quadIndices[i][0]][2],
             v_cube[quadIndices[i][1]][0], v_cube[quadIndices[i][1]][1], v_cube[quadIndices[i][1]][2],
             v_cube[quadIndices[i][2]][0], v_cube[quadIndices[i][2]][1], v_cube[quadIndices[i][2]][2]);
 
-        // Generic texture coordinates for each face of the cube
         glTexCoord2f(0.0f, 0.0f); glVertex3fv(&v_cube[quadIndices[i][0]][0]);
         glTexCoord2f(1.0f, 0.0f); glVertex3fv(&v_cube[quadIndices[i][1]][0]);
         glTexCoord2f(1.0f, 1.0f); glVertex3fv(&v_cube[quadIndices[i][2]][0]);
         glTexCoord2f(0.0f, 1.0f); glVertex3fv(&v_cube[quadIndices[i][3]][0]);
     }
     glEnd();
-
     if (textureID != 0) {
         glDisable(GL_TEXTURE_2D);
     }
 }
 
+// Trapezoid Data
 static GLfloat v_trapezoid[8][3] = {
-    {0.0f, 0.0f, 0.0f}, //0
-    {0.0f, 0.0f, 3.0f}, //1
-    {3.0f, 0.0f, 3.0f}, //2
-    {3.0f, 0.0f, 0.0f}, //3
-    {0.5f, 3.0f, 0.5f}, //4
-    {0.5f, 3.0f, 2.5f}, //5
-    {2.5f, 3.0f, 2.5f}, //6
-    {2.5f, 3.0f, 0.5f}  //7
+    {0.0f, 0.0f, 0.0f}, {0.0f, 0.0f, 3.0f}, {3.0f, 0.0f, 3.0f}, {3.0f, 0.0f, 0.0f},
+    {0.5f, 3.0f, 0.5f}, {0.5f, 3.0f, 2.5f}, {2.5f, 3.0f, 2.5f}, {2.5f, 3.0f, 0.5f}
 };
 
 static GLubyte TquadIndices[6][4] = {
-    {0, 1, 2, 3}, //bottom
-    {4, 5, 6, 7}, //top
-    {5, 1, 2, 6}, //front
-    {0, 4, 7, 3}, // back is clockwise
-    {2, 3, 7, 6}, //right
-    {1, 5, 4, 0}  //left is clockwise
+    {0, 1, 2, 3}, {4, 5, 6, 7}, {5, 1, 2, 6},
+    {0, 4, 7, 3}, {2, 3, 7, 6}, {1, 5, 4, 0}
 };
 
+// Trapezoid Drawer
 void drawTrapezoid(GLfloat difX, GLfloat difY, GLfloat difZ, GLfloat ambX, GLfloat ambY, GLfloat ambZ, GLfloat shine = 50) {
-    GLfloat no_mat[] = { 0.0f, 0.0f, 0.0f, 1.0f };
-    GLfloat mat_ambient[] = { ambX, ambY, ambZ, 1.0f };
-    GLfloat mat_diffuse[] = { difX, difY, difZ, 1.0f };
-    GLfloat mat_specular[] = { 1.0f, 1.0f, 1.0f, 1.0f };
-    GLfloat mat_emission[] = { difX, difY, difZ, 0.0f };
-    GLfloat mat_shininess[] = { shine };
-
-    glMaterialfv(GL_FRONT, GL_AMBIENT, mat_ambient);
-    glMaterialfv(GL_FRONT, GL_DIFFUSE, mat_diffuse);
-    glMaterialfv(GL_FRONT, GL_SPECULAR, mat_specular);
-    glMaterialfv(GL_FRONT, GL_SHININESS, mat_shininess);
-
+    setMaterial(difX, difY, difZ, ambX, ambY, ambZ, shine);
     if (switchLamp == GL_TRUE) {
+        GLfloat mat_emission[] = { difX, difY, difZ, 1.0f };
         glMaterialfv(GL_FRONT, GL_EMISSION, mat_emission);
     }
-    else {
-        glMaterialfv(GL_FRONT, GL_EMISSION, no_mat);
-    }
-
     glBegin(GL_QUADS);
     for (GLint i = 0; i < 6; i++) {
         getNormal3p(v_trapezoid[TquadIndices[i][0]][0], v_trapezoid[TquadIndices[i][0]][1], v_trapezoid[TquadIndices[i][0]][2],
@@ -189,188 +146,90 @@ void drawTrapezoid(GLfloat difX, GLfloat difY, GLfloat difZ, GLfloat ambX, GLflo
     glEnd();
 }
 
-static GLubyte p_Indices[4][3] = {
-    {4, 1, 2},
-    {4, 2, 3},
-    {4, 3, 0},
-    {4, 0, 1}
-};
-
-static GLubyte PquadIndices[1][4] = {
-    {0, 3, 2, 1}
-};
-
+// Polygon Helper
 void polygon(GLfloat difX, GLfloat difY, GLfloat difZ, GLfloat ambX, GLfloat ambY, GLfloat ambZ, GLfloat shine) {
-    GLfloat no_mat[] = { 0.0f, 0.0f, 0.0f, 1.0f };
-    GLfloat mat_ambient[] = { ambX, ambY, ambZ, 1.0f };
-    GLfloat mat_diffuse[] = { difX, difY, difZ, 1.0f };
-    GLfloat mat_specular[] = { 1.0f, 1.0f, 1.0f, 1.0f };
-    GLfloat mat_shininess[] = { shine };
-
-    glMaterialfv(GL_FRONT, GL_AMBIENT, mat_ambient);
-    glMaterialfv(GL_FRONT, GL_DIFFUSE, mat_diffuse);
-    glMaterialfv(GL_FRONT, GL_SPECULAR, mat_specular);
-    glMaterialfv(GL_FRONT, GL_SHININESS, mat_shininess);
-
+    setMaterial(difX, difY, difZ, ambX, ambY, ambZ, shine);
     glBegin(GL_POLYGON);
-    glVertex2f(0, 0);
-    glVertex2f(6, 0);
-    glVertex2f(5.8f, 1);
-    glVertex2f(5.2f, 2);
-    glVertex2f(5, 2.2f);
-    glVertex2f(4, 2.8f);
-    glVertex2f(3, 3);
-    glVertex2f(2, 2.8f);
-    glVertex2f(1, 2.2f);
-    glVertex2f(0.8f, 2);
-    glVertex2f(0.2f, 1);
+    glVertex2f(0, 0); glVertex2f(6, 0); glVertex2f(5.8f, 1); glVertex2f(5.2f, 2);
+    glVertex2f(5, 2.2f); glVertex2f(4, 2.8f); glVertex2f(3, 3); glVertex2f(2, 2.8f);
+    glVertex2f(1, 2.2f); glVertex2f(0.8f, 2); glVertex2f(0.2f, 1);
     glEnd();
 }
 
+// Polygon Outline Helper
 void polygonLine(GLfloat difX, GLfloat difY, GLfloat difZ, GLfloat ambX, GLfloat ambY, GLfloat ambZ, GLfloat shine) {
-    GLfloat no_mat[] = { 0.0f, 0.0f, 0.0f, 1.0f };
-    GLfloat mat_ambient[] = { ambX, ambY, ambZ, 1.0f };
-    GLfloat mat_diffuse[] = { difX, difY, difZ, 1.0f };
-    GLfloat mat_specular[] = { 1.0f, 1.0f, 1.0f, 1.0f };
-    GLfloat mat_shininess[] = { shine };
-
-    glMaterialfv(GL_FRONT, GL_AMBIENT, mat_ambient);
-    glMaterialfv(GL_FRONT, GL_DIFFUSE, mat_diffuse);
-    glMaterialfv(GL_FRONT, GL_SPECULAR, mat_specular);
-    glMaterialfv(GL_FRONT, GL_SHININESS, mat_shininess);
-
+    setMaterial(difX, difY, difZ, ambX, ambY, ambZ, shine);
     glBegin(GL_LINE_STRIP);
-    glVertex2f(6, 0);
-    glVertex2f(5.8f, 1);
-    glVertex2f(5.2f, 2);
-    glVertex2f(5, 2.2f);
-    glVertex2f(4, 2.8f);
-    glVertex2f(3, 3);
-    glVertex2f(2, 2.8f);
-    glVertex2f(1, 2.2f);
-    glVertex2f(0.8f, 2);
-    glVertex2f(0.2f, 1);
-    glVertex2f(0, 0);
+    glVertex2f(6, 0); glVertex2f(5.8f, 1); glVertex2f(5.2f, 2); glVertex2f(5, 2.2f);
+    glVertex2f(4, 2.8f); glVertex2f(3, 3); glVertex2f(2, 2.8f); glVertex2f(1, 2.2f);
+    glVertex2f(0.8f, 2); glVertex2f(0.2f, 1); glVertex2f(0, 0);
     glEnd();
 }
 
+// Sphere Drawer
 void drawSphere(GLfloat difX, GLfloat difY, GLfloat difZ, GLfloat ambX, GLfloat ambY, GLfloat ambZ, GLfloat shine = 90) {
-    GLfloat no_mat[] = { 0.0f, 0.0f, 0.0f, 1.0f };
-    GLfloat mat_ambient[] = { ambX, ambY, ambZ, 1.0f };
-    GLfloat mat_diffuse[] = { difX, difY, difZ, 1.0f };
-    GLfloat mat_specular[] = { 1.0f, 1.0f, 1.0f, 1.0f };
-    GLfloat mat_shininess[] = { shine };
-
-    glMaterialfv(GL_FRONT, GL_AMBIENT, mat_ambient);
-    glMaterialfv(GL_FRONT, GL_DIFFUSE, mat_diffuse);
-    glMaterialfv(GL_FRONT, GL_SPECULAR, mat_specular);
-    glMaterialfv(GL_FRONT, GL_SHININESS, mat_shininess);
-
+    setMaterial(difX, difY, difZ, ambX, ambY, ambZ, shine);
     glutSolidSphere(3.0, 20, 16);
 }
 
+// Texture Loading
 void loadAllTextures() {
-    // Load wood texture for the door
-    woodTexture = SOIL_load_OGL_texture(
-        "wood.jpg",
-        SOIL_LOAD_AUTO,
-        SOIL_CREATE_NEW_ID,
-        SOIL_FLAG_MIPMAPS | SOIL_FLAG_INVERT_Y
-    );
-    if (!woodTexture) {
-        printf("Wood texture loading failed: %s\n", SOIL_last_result());
-    }
-    // Load carpet texture
-    carpetTexture = SOIL_load_OGL_texture(
-        "carpet.jpg",
-        SOIL_LOAD_AUTO,
-        SOIL_CREATE_NEW_ID,
-        SOIL_FLAG_MIPMAPS | SOIL_FLAG_INVERT_Y
-    );
-    if (!carpetTexture) {
-        printf("Carpet texture loading failed: %s\n", SOIL_last_result());
-    }
-    // Load floor texture
-    floorTexture = SOIL_load_OGL_texture(
-        "floor.jpg",
-        SOIL_LOAD_AUTO,
-        SOIL_CREATE_NEW_ID,
-        SOIL_FLAG_MIPMAPS | SOIL_FLAG_INVERT_Y
-    );
-    if (!floorTexture) {
-        printf("Floor texture loading failed: %s\n", SOIL_last_result());
-    }
-    // Load poster texture
-    posterTexture = SOIL_load_OGL_texture(
-        "image.jpg",
-        SOIL_LOAD_AUTO,
-        SOIL_CREATE_NEW_ID,
-        SOIL_FLAG_MIPMAPS | SOIL_FLAG_INVERT_Y
-    );
-    if (!posterTexture) {
-        printf("Poster texture (image.jpg) loading failed: %s\n", SOIL_last_result());
-    }
+    woodTexture = SOIL_load_OGL_texture("wood.jpg", SOIL_LOAD_AUTO, SOIL_CREATE_NEW_ID, SOIL_FLAG_MIPMAPS | SOIL_FLAG_INVERT_Y);
+    if (!woodTexture) printf("Wood texture loading failed: %s\n", SOIL_last_result());
+
+    carpetTexture = SOIL_load_OGL_texture("carpet.jpg", SOIL_LOAD_AUTO, SOIL_CREATE_NEW_ID, SOIL_FLAG_MIPMAPS | SOIL_FLAG_INVERT_Y);
+    if (!carpetTexture) printf("Carpet texture loading failed: %s\n", SOIL_last_result());
+
+    floorTexture = SOIL_load_OGL_texture("floor.jpg", SOIL_LOAD_AUTO, SOIL_CREATE_NEW_ID, SOIL_FLAG_MIPMAPS | SOIL_FLAG_INVERT_Y);
+    if (!floorTexture) printf("Floor texture loading failed: %s\n", SOIL_last_result());
+
+    posterTexture = SOIL_load_OGL_texture("image.jpg", SOIL_LOAD_AUTO, SOIL_CREATE_NEW_ID, SOIL_FLAG_MIPMAPS | SOIL_FLAG_INVERT_Y);
+    if (!posterTexture) printf("Poster texture (image.jpg) loading failed: %s\n", SOIL_last_result());
 }
 
-
-// Textured cube for the door
-void drawTexturedCube(GLfloat width, GLfloat height, GLfloat depth,
-    GLfloat difX, GLfloat difY, GLfloat difZ,
-    GLfloat ambX = 0.2f, GLfloat ambY = 0.1f, GLfloat ambZ = 0.05f,
-    GLfloat shine = 30) {
-    GLfloat no_mat[] = { 0.0f, 0.0f, 0.0f, 1.0f };
-    GLfloat mat_ambient[] = { ambX, ambY, ambZ, 1.0f };
-    GLfloat mat_diffuse[] = { difX, difY, difZ, 1.0f };
-    GLfloat mat_specular[] = { 0.3f, 0.3f, 0.3f, 1.0f };
-    GLfloat mat_shininess[] = { shine };
-
-    glMaterialfv(GL_FRONT, GL_AMBIENT, mat_ambient);
-    glMaterialfv(GL_FRONT, GL_DIFFUSE, mat_diffuse);
-    glMaterialfv(GL_FRONT, GL_SPECULAR, mat_specular);
-    glMaterialfv(GL_FRONT, GL_SHININESS, mat_shininess);
-    glMaterialfv(GL_FRONT, GL_EMISSION, no_mat);
-
+// Custom Textured Cube Drawer
+void drawTexturedCube(GLfloat width, GLfloat height, GLfloat depth, GLfloat difX, GLfloat difY, GLfloat difZ, GLfloat ambX = 0.2f, GLfloat ambY = 0.1f, GLfloat ambZ = 0.05f, GLfloat shine = 30) {
+    setMaterial(difX, difY, difZ, ambX, ambY, ambZ, shine);
     glEnable(GL_TEXTURE_2D);
     glBindTexture(GL_TEXTURE_2D, woodTexture);
-
     glBegin(GL_QUADS);
 
-    // Front face
+    // Front
     glNormal3f(0.0f, 0.0f, 1.0f);
     glTexCoord2f(0.0f, 0.0f); glVertex3f(0.0f, 0.0f, depth);
     glTexCoord2f(1.0f, 0.0f); glVertex3f(width, 0.0f, depth);
     glTexCoord2f(1.0f, 1.0f); glVertex3f(width, height, depth);
     glTexCoord2f(0.0f, 1.0f); glVertex3f(0.0f, height, depth);
 
-    // Back face
+    // Back
     glNormal3f(0.0f, 0.0f, -1.0f);
     glTexCoord2f(1.0f, 0.0f); glVertex3f(0.0f, 0.0f, 0.0f);
     glTexCoord2f(1.0f, 1.0f); glVertex3f(0.0f, height, 0.0f);
     glTexCoord2f(0.0f, 1.0f); glVertex3f(width, height, 0.0f);
     glTexCoord2f(0.0f, 0.0f); glVertex3f(width, 0.0f, 0.0f);
 
-    // Top face
+    // Top
     glNormal3f(0.0f, 1.0f, 0.0f);
     glTexCoord2f(0.0f, 1.0f); glVertex3f(0.0f, height, 0.0f);
     glTexCoord2f(0.0f, 0.0f); glVertex3f(0.0f, height, depth);
     glTexCoord2f(1.0f, 0.0f); glVertex3f(width, height, depth);
     glTexCoord2f(1.0f, 1.0f); glVertex3f(width, height, 0.0f);
 
-    // Bottom face
+    // Bottom
     glNormal3f(0.0f, -1.0f, 0.0f);
     glTexCoord2f(1.0f, 1.0f); glVertex3f(0.0f, 0.0f, 0.0f);
     glTexCoord2f(0.0f, 1.0f); glVertex3f(width, 0.0f, 0.0f);
     glTexCoord2f(0.0f, 0.0f); glVertex3f(width, 0.0f, depth);
     glTexCoord2f(1.0f, 0.0f); glVertex3f(0.0f, 0.0f, depth);
 
-    // Right face
+    // Right
     glNormal3f(1.0f, 0.0f, 0.0f);
     glTexCoord2f(1.0f, 0.0f); glVertex3f(width, 0.0f, 0.0f);
     glTexCoord2f(1.0f, 1.0f); glVertex3f(width, height, 0.0f);
     glTexCoord2f(0.0f, 1.0f); glVertex3f(width, height, depth);
     glTexCoord2f(0.0f, 0.0f); glVertex3f(width, 0.0f, depth);
 
-    // Left face
+    // Left
     glNormal3f(-1.0f, 0.0f, 0.0f);
     glTexCoord2f(0.0f, 0.0f); glVertex3f(0.0f, 0.0f, 0.0f);
     glTexCoord2f(1.0f, 0.0f); glVertex3f(0.0f, 0.0f, depth);
@@ -381,70 +240,48 @@ void drawTexturedCube(GLfloat width, GLfloat height, GLfloat depth,
     glDisable(GL_TEXTURE_2D);
 }
 
-// House door function with a spherical doorknob
+// Door Object
 void drawHouseDoor() {
     glPushMatrix();
-
-    // Position the entire door assembly on the front wall
     glTranslatef(2.0f, -1.0f, 14.8f);
     glScalef(1.1f, 1.1f, 1.0f);
-    // Door frame - left post
+
+    // Left Post
     glPushMatrix();
     glTranslatef(-0.1f, 0.0f, -0.15f);
     drawTexturedCube(0.2f, 4.0f, 0.6f, 0.4f, 0.2f, 0.1f);
     glPopMatrix();
 
-    // Door frame - right post
+    // Right Post
     glPushMatrix();
     glTranslatef(1.6f, 0.0f, -0.15f);
     drawTexturedCube(0.2f, 4.0f, 0.6f, 0.4f, 0.2f, 0.1f);
     glPopMatrix();
 
-    // Door frame - top
+    // Top Header
     glPushMatrix();
     glTranslatef(-0.1f, 3.8f, -0.15f);
     drawTexturedCube(1.9f, 0.2f, 0.6f, 0.4f, 0.2f, 0.1f);
     glPopMatrix();
 
-    // Door itself
+    // Rotating Door Panel
     glPushMatrix();
-
-    // Move to hinge point (left edge of door)
     glTranslatef(0.0f, 0.0f, 0.1f);
-
-    // Rotate around Y-axis (the hinge)
     glRotatef(doorAngle, 0.0f, 1.0f, 0.0f);
-
-    //  Adjusted door size (slightly smaller than frame opening)
     drawTexturedCube(1.6f, 3.8f, 0.1f, 0.6f, 0.4f, 0.2f);
 
-    // Spherical Door handle
+    // Door Handle
     glPushMatrix();
-    // Position the sphere on the door's surface
     glTranslatef(1.45f, 1.8f, 0.15f);
-
-    // Material properties for the golden doorknob
-    GLfloat no_mat[] = { 0.0f, 0.0f, 0.0f, 1.0f };
-    GLfloat mat_ambient[] = { 0.4f, 0.35f, 0.05f, 1.0f };
-    GLfloat mat_diffuse[] = { 0.8f, 0.7f, 0.1f, 1.0f };
-    GLfloat mat_specular[] = { 1.0f, 1.0f, 1.0f, 1.0f };
-    GLfloat mat_shininess[] = { 100 };
-
-    glMaterialfv(GL_FRONT, GL_AMBIENT, mat_ambient);
-    glMaterialfv(GL_FRONT, GL_DIFFUSE, mat_diffuse);
-    glMaterialfv(GL_FRONT, GL_SPECULAR, mat_specular);
-    glMaterialfv(GL_FRONT, GL_SHININESS, mat_shininess);
-    glMaterialfv(GL_FRONT, GL_EMISSION, no_mat);
-
-    // Use built-in glutSolidSphere
+    setMaterial(0.8f, 0.7f, 0.1f, 0.4f, 0.35f, 0.05f, 100);
     glutSolidSphere(0.08, 20, 20);
     glPopMatrix();
 
-    glPopMatrix(); // End door rotation
-    glPopMatrix(); // End door positioning
+    glPopMatrix();
+    glPopMatrix();
 }
 
-// Animation update function for the door
+// Door Animation Logic
 void updateDoorAnimation()
 {
     if (doorOpening && doorAngle < 90.0f) {
@@ -454,7 +291,8 @@ void updateDoorAnimation()
             doorOpening = false;
         }
         glutPostRedisplay();
-    }else if (doorClosing && doorAngle > 0.0f) {
+    }
+    else if (doorClosing && doorAngle > 0.0f) {
         doorAngle -= doorSpeed;
         if (doorAngle <= 0.0f) {
             doorAngle = 0.0f;
@@ -464,95 +302,87 @@ void updateDoorAnimation()
     }
 }
 
+// Cupboard Object
 void cupboard() {
-    //Cupboard/Almari
     glPushMatrix();
     glTranslatef(-1.0f, 0.0f, -1.0f);
-    //cupboard
+
+    // Body
     glPushMatrix();
     glTranslatef(4, 0, 4.4f);
     glScalef(0.5f, 1, 0.5f);
     drawCube1(0.5f, 0.2f, 0.2f, 0.25f, 0.1f, 0.1f);
     glPopMatrix();
 
-    //cupboard's 1st vertical stripline
+    // Striplines
     glPushMatrix();
     glTranslatef(4, 1, 5.9f);
     glScalef(0.5f, 0.01f, 0.0001f);
     drawCube1(0.2f, 0.1f, 0.1f, 0.1f, 0.05f, 0.05f);
     glPopMatrix();
 
-    //cupboard's 2nd vertical stripline
     glPushMatrix();
     glTranslatef(4, 0.5f, 5.9f);
     glScalef(0.5f, 0.01f, 0.0001f);
     drawCube1(0.2f, 0.1f, 0.1f, 0.1f, 0.05f, 0.05f);
     glPopMatrix();
 
-    //cupboard's last stripline
     glPushMatrix();
     glTranslatef(4, 0, 5.9f);
     glScalef(0.5f, 0.01f, 0.0001f);
     drawCube1(0.2f, 0.1f, 0.1f, 0.1f, 0.05f, 0.05f);
     glPopMatrix();
 
-    //cupboard's lst horizontal stripline
     glPushMatrix();
     glTranslatef(5.5f, 0, 5.9f);
     glScalef(0.01f, 1, 0.0001f);
     drawCube1(0.2f, 0.1f, 0.1f, 0.1f, 0.05f, 0.05f);
     glPopMatrix();
 
-    //cupboard's right side horizontal stripline
     glPushMatrix();
     glTranslatef(4.75f, 1, 5.9f);
     glScalef(0.01f, 0.67f, 0.0001f);
     drawCube1(0.2f, 0.1f, 0.1f, 0.1f, 0.05f, 0.05f);
     glPopMatrix();
 
-    //cupboard's left side horizontal stripline
     glPushMatrix();
     glTranslatef(4, 0, 5.9f);
     glScalef(0.01f, 1, 0.0001f);
     drawCube1(0.2f, 0.1f, 0.1f, 0.1f, 0.05f, 0.05f);
     glPopMatrix();
 
-    //cupboard's handle right
+    // Handles
     glPushMatrix();
     glTranslatef(5, 1.4f, 5.9f);
     glScalef(0.02f, 0.18f, 0.01f);
     drawCube1(0.2f, 0.1f, 0.1f, 0.1f, 0.05f, 0.05f);
     glPopMatrix();
 
-    //cupboard's handle right sphere
     glPushMatrix();
     glTranslatef(5.02f, 1.9f, 5.91f);
     glScalef(0.02f, 0.02f, 0.01f);
     drawSphere(0.2f, 0.1f, 0.1f, 0.1f, 0.05f, 0.05f, 10);
     glPopMatrix();
 
-    //cupboard's handle left
     glPushMatrix();
     glTranslatef(4.5f, 1.4f, 5.9f);
     glScalef(0.02f, 0.18f, 0.01f);
     drawCube1(0.2f, 0.1f, 0.1f, 0.1f, 0.05f, 0.05f);
     glPopMatrix();
 
-    //cupboard's handle left sphere
     glPushMatrix();
     glTranslatef(4.52f, 1.9f, 5.91f);
     glScalef(0.02f, 0.02f, 0.01f);
     drawSphere(0.2f, 0.1f, 0.1f, 0.1f, 0.05f, 0.05f, 10);
     glPopMatrix();
 
-    //cupboard's drawer's 1st handle
+    // Drawer Handles
     glPushMatrix();
     glTranslatef(4.5f, 0.7f, 5.9f);
     glScalef(0.16f, 0.02f, 0.01f);
     drawCube1(0.2f, 0.1f, 0.1f, 0.1f, 0.05f, 0.05f);
     glPopMatrix();
 
-    //cupboard's drawer's 2nd handle
     glPushMatrix();
     glTranslatef(4.5f, 0.25f, 5.9f);
     glScalef(0.16f, 0.02f, 0.01f);
@@ -561,59 +391,56 @@ void cupboard() {
     glPopMatrix();
 }
 
+// Room Structure
 void room() {
-    // back wall
+    // Back Wall
     glPushMatrix();
     glTranslatef(-1.5f, -1, .5f);
     glScalef(5, 2, 0.1f);
     drawCube1(1, 0.8f, 0.7f, 0.5f, 0.4f, 0.35f);
     glPopMatrix();
 
-    // left wall
+    // Left Wall
     glPushMatrix();
     glTranslatef(-4.5f, -1, 0);
     glScalef(1, 2, 5);
     drawCube1(1, 0.8f, 0.7f, 0.5f, 0.4f, 0.35f);
     glPopMatrix();
 
-    // right wall
+    // Right Wall
     glPushMatrix();
     glTranslatef(8, -1, 0);
     glScalef(0.2f, 2, 5);
     drawCube1(1, 0.8f, 0.7f, 0.5f, 0.4f, 0.35f);
     glPopMatrix();
 
-    //ceiling
+    // Ceiling
     glPushMatrix();
     glTranslatef(-2, 5.1f, 0);
     glScalef(5, 0.1f, 7);
     drawCube1(1.0f, 0.9f, 0.8f, 0.5f, 0.45f, 0.4f);
     glPopMatrix();
 
-    // floor with texture
+    // Floor
     glPushMatrix();
     glScalef(5, 0.1f, 7);
     glTranslatef(-1, -5, 0);
-    // The color arguments are overridden by the function when a texture is present.
-    // pass the shininess value and the floorTexture ID.
     drawCube1(1.0f, 1.0f, 1.0f, 0.8f, 0.8f, 0.8f, 50, floorTexture);
     glPopMatrix();
 
-    // front wall section (left of door)
+    // Front Wall Sections
     glPushMatrix();
     glTranslatef(-1.5f, -1.0f, 14.8f);
     glScalef(3.5f / 3.0f, 6.1f / 3.0f, 0.1f);
     drawCube1(1, 0.8f, 0.7f, 0.5f, 0.4f, 0.35f);
     glPopMatrix();
 
-    // front wall section (right of door)
     glPushMatrix();
     glTranslatef(3.76f, -1.0f, 14.8f);
     glScalef(4.24f / 3.0f, 6.1f / 3.0f, 0.1f);
     drawCube1(1, 0.8f, 0.7f, 0.5f, 0.4f, 0.35f);
     glPopMatrix();
 
-    // front wall section (above door)
     glPushMatrix();
     glTranslatef(2.0f, 3.18f, 14.8f);
     glScalef(1.76f / 3.0f, 1.92f / 3.0f, 0.1f);
@@ -621,22 +448,23 @@ void room() {
     glPopMatrix();
 }
 
+// Bed Object
 void bed() {
-    //bed headboard
+    // Headboard
     glPushMatrix();
     glScalef(0.1f, 0.5f, 0.9f);
     glTranslatef(-2, -0.5f, 6.2f);
     drawCube1(0.5f, 0.2f, 0.2f, 0.25f, 0.1f, 0.1f);
     glPopMatrix();
 
-    //bed body
+    // Mattress
     glPushMatrix();
     glScalef(1, 0.2f, 0.9f);
     glTranslatef(0, -0.5f, 6.2f);
     drawCube1(0.824f, 0.706f, 0.549f, 0.412f, 0.353f, 0.2745f);
     glPopMatrix();
 
-    //pillow right far
+    // Pillow (Right)
     glPushMatrix();
     glTranslatef(0.5f, 0.5f, 6);
     glRotatef(20, 0, 0, 1);
@@ -644,7 +472,7 @@ void bed() {
     drawCube1(0.5f, 0.7f, 0.9f, 0.25f, 0.35f, 0.45f);
     glPopMatrix();
 
-    //pillow left near
+    // Pillow (Left)
     glPushMatrix();
     glTranslatef(0.5f, 0.5f, 7.2f);
     glRotatef(22, 0, 0, 1);
@@ -652,14 +480,13 @@ void bed() {
     drawCube1(0.5f, 0.7f, 0.9f, 0.25f, 0.35f, 0.45f);
     glPopMatrix();
 
-    //blanket
+    // Blanket
     glPushMatrix();
     glTranslatef(1.4f, 0.45f, 5.5f);
     glScalef(0.5f, 0.05f, 0.95f);
     drawCube1(0.7f, 0.1f, 0.1f, 0.35f, 0.05f, 0.05f);
     glPopMatrix();
 
-    //blanket side left part
     glPushMatrix();
     glTranslatef(1.4f, -0.3f, 8.16f);
     glScalef(0.5f, 0.25f, 0.05f);
@@ -667,24 +494,23 @@ void bed() {
     glPopMatrix();
 }
 
+// Bedside Drawer Object
 void bedsideDrawer() {
-    //bedside drawer
-
-    //side drawer
+    // Body
     glPushMatrix();
     glTranslatef(0.5f, -0.1f, 8.7f);
     glScalef(0.12f, 0.2f, 0.23f);
     drawCube1(0.2f, 0.1f, 0.1f, 0.1f, 0.05f, 0.05f);
     glPopMatrix();
 
-    //side drawer's drawer
+    // Drawer Face
     glPushMatrix();
     glTranslatef(0.88f, 0, 8.8f);
     glScalef(0.0001f, 0.11f, 0.18f);
     drawCube1(0.3f, 0.2f, 0.2f, 0.15f, 0.1f, 0.1f);
     glPopMatrix();
 
-    //side drawer's knob
+    // Knob
     glPushMatrix();
     glTranslatef(0.9f, 0.15f, 9.05f);
     glScalef(0.01f, 0.02f, 0.02f);
@@ -692,22 +518,23 @@ void bedsideDrawer() {
     glPopMatrix();
 }
 
+// Lamp Object
 void lamp() {
-    //lamp base
+    // Base
     glPushMatrix();
     glTranslatef(.6f, 0.5f, 8.95f);
     glScalef(0.07f, 0.02f, 0.07f);
     drawCube1(0, 0, 1, 0, 0, 0.5f);
     glPopMatrix();
 
-    //lamp stand
+    // Stand
     glPushMatrix();
     glTranslatef(.7f, 0.35f, 9.05f);
     glScalef(0.01f, 0.2f, 0.01f);
     drawCube1(1, 0, 0, 0.5f, 0.0f, 0.0f);
     glPopMatrix();
 
-    //lamp shade
+    // Shade
     glPushMatrix();
     glTranslatef(.6f, 0.9f, 8.9f);
     glScalef(0.08f, 0.09f, 0.08f);
@@ -715,6 +542,7 @@ void lamp() {
     glPopMatrix();
 }
 
+// Poster Object
 void drawPoster() {
     glPushMatrix();
     glTranslatef(-1.0f, 1.5f, 11.0f);
@@ -722,48 +550,38 @@ void drawPoster() {
     float height = 1.95f;
     float width = 2.4f;
     float frameThickness = 0.1f;
-    float frameDepth = 0.05f; // How far it sticks out from the wall
+    float frameDepth = 0.05f;
 
-    // A simple dark wood color for the frame
     GLfloat frameDif[] = { 0.3f, 0.15f, 0.05f };
     GLfloat frameAmb[] = { 0.15f, 0.075f, 0.025f };
 
-    // Bottom frame piece
+    // Frames
     glPushMatrix();
     glTranslatef(0.0f, -frameThickness, -frameThickness);
     glScalef(frameDepth / 3.0f, frameThickness / 3.0f, (width + 2 * frameThickness) / 3.0f);
     drawCube1(frameDif[0], frameDif[1], frameDif[2], frameAmb[0], frameAmb[1], frameAmb[2]);
     glPopMatrix();
 
-    // Top frame piece
     glPushMatrix();
     glTranslatef(0.0f, height, -frameThickness);
     glScalef(frameDepth / 3.0f, frameThickness / 3.0f, (width + 2 * frameThickness) / 3.0f);
     drawCube1(frameDif[0], frameDif[1], frameDif[2], frameAmb[0], frameAmb[1], frameAmb[2]);
     glPopMatrix();
 
-    // Left frame piece
     glPushMatrix();
     glTranslatef(0.0f, -frameThickness, -frameThickness);
     glScalef(frameDepth / 3.0f, (height + 2 * frameThickness) / 3.0f, frameThickness / 3.0f);
     drawCube1(frameDif[0], frameDif[1], frameDif[2], frameAmb[0], frameAmb[1], frameAmb[2]);
     glPopMatrix();
 
-    // Right frame piece
     glPushMatrix();
     glTranslatef(0.0f, -frameThickness, width);
     glScalef(frameDepth / 3.0f, (height + 2 * frameThickness) / 3.0f, frameThickness / 3.0f);
     drawCube1(frameDif[0], frameDif[1], frameDif[2], frameAmb[0], frameAmb[1], frameAmb[2]);
     glPopMatrix();
 
-    // Set material properties to be bright so the texture shows clearly
-    GLfloat mat_ambient[] = { 0.8f, 0.8f, 0.8f, 1.0f };
-    GLfloat mat_diffuse[] = { 1.0f, 1.0f, 1.0f, 1.0f };
-    GLfloat mat_specular[] = { 0.1f, 0.1f, 0.1f, 1.0f };
-    glMaterialfv(GL_FRONT, GL_AMBIENT, mat_ambient);
-    glMaterialfv(GL_FRONT, GL_DIFFUSE, mat_diffuse);
-    glMaterialfv(GL_FRONT, GL_SPECULAR, mat_specular);
-
+    // Canvas
+    setMaterial(1.0f, 1.0f, 1.0f, 0.8f, 0.8f, 0.8f, 20.0f);
     glEnable(GL_TEXTURE_2D);
     glBindTexture(GL_TEXTURE_2D, posterTexture);
 
@@ -779,20 +597,11 @@ void drawPoster() {
     glPopMatrix();
 }
 
-
-// Draws a textured quad for the carpet on the floor.
+// Carpet Object
 void drawCarpet() {
     glPushMatrix();
     glTranslatef(3.0f, -0.199f, 7.0f);
-
-    // Set material properties
-    GLfloat mat_ambient[] = { 0.8f, 0.8f, 0.8f, 1.0f };
-    GLfloat mat_diffuse[] = { 1.0f, 1.0f, 1.0f, 1.0f };
-    GLfloat mat_specular[] = { 0.2f, 0.2f, 0.2f, 1.0f };
-    glMaterialfv(GL_FRONT, GL_AMBIENT, mat_ambient);
-    glMaterialfv(GL_FRONT, GL_DIFFUSE, mat_diffuse);
-    glMaterialfv(GL_FRONT, GL_SPECULAR, mat_specular);
-
+    setMaterial(1.0f, 1.0f, 1.0f, 0.8f, 0.8f, 0.8f, 10.0f);
     glEnable(GL_TEXTURE_2D);
     glBindTexture(GL_TEXTURE_2D, carpetTexture);
 
@@ -800,7 +609,7 @@ void drawCarpet() {
     float depth = 5.1f;
 
     glBegin(GL_QUADS);
-    glNormal3f(0.0f, 1.0f, 0.0f); // Normal pointing up from the floor
+    glNormal3f(0.0f, 1.0f, 0.0f);
     glTexCoord2f(0.0f, 1.0f); glVertex3f(0.0f, 0.0f, 0.0f);
     glTexCoord2f(0.0f, 0.0f); glVertex3f(0.0f, 0.0f, depth);
     glTexCoord2f(1.0f, 0.0f); glVertex3f(width, 0.0f, depth);
@@ -811,209 +620,157 @@ void drawCarpet() {
     glPopMatrix();
 }
 
+// Wardrobe Object
 void wardrobe() {
-    //wardrobe
+    // Body
     glPushMatrix();
     glTranslatef(0, 0, 4);
     glScalef(0.12f, 0.6f, 0.4f);
     drawCube1(0.3f, 0.1f, 0, 0.15f, 0.05f, 0);
     glPopMatrix();
 
-    //wardrobe's 1st drawer
-    glPushMatrix();
-    glTranslatef(0.36f, 1.4f, 4.05f);
-    glScalef(0.0001f, 0.11f, 0.38f);
-    drawCube1(0.5f, 0.2f, 0.2f, 0.25f, 0.1f, 0.1f);
-    glPopMatrix();
+    // Drawers
+    for (int i = 0; i < 4; i++) {
+        glPushMatrix();
+        glTranslatef(0.36f, 1.4f - (i * 0.4f), 4.05f);
+        glScalef(0.0001f, 0.11f, 0.38f);
+        drawCube1(0.5f, 0.2f, 0.2f, 0.25f, 0.1f, 0.1f);
+        glPopMatrix();
 
-    //wardrobe's 2nd drawer
-    glPushMatrix();
-    glTranslatef(0.36f, 1, 4.05f);
-    glScalef(0.0001f, 0.11f, 0.38f);
-    drawCube1(0.5f, 0.2f, 0.2f, 0.25f, 0.1f, 0.1f);
-    glPopMatrix();
-
-    //wardrobe's 3rd drawer
-    glPushMatrix();
-    glTranslatef(0.36f, 0.6f, 4.05f);
-    glScalef(0.0001f, 0.11f, 0.38f);
-    drawCube1(0.5f, 0.2f, 0.2f, 0.25f, 0.1f, 0.1f);
-    glPopMatrix();
-
-    //wardrobe's 4th drawer
-    glPushMatrix();
-    glTranslatef(0.36f, 0.2f, 4.05f);
-    glScalef(0.0001f, 0.11f, 0.38f);
-    drawCube1(0.5f, 0.2f, 0.2f, 0.25f, 0.1f, 0.1f);
-    glPopMatrix();
-
-    //wardrobe's 1st drawer handle
-    glPushMatrix();
-    glTranslatef(0.37f, 1.5f, 4.3f);
-    glScalef(0.01f, 0.03f, 0.2f);
-    drawCube1(0.3f, 0.1f, 0, 0.15f, 0.05f, 0.0f);
-    glPopMatrix();
-
-    //wardrobe's 2nd drawer handle
-    glPushMatrix();
-    glTranslatef(0.37f, 1.1f, 4.3f);
-    glScalef(0.01f, 0.03f, 0.2f);
-    drawCube1(0.3f, 0.1f, 0, 0.15f, 0.05f, 0.0f);
-    glPopMatrix();
-
-    //wardrobe's 3rd drawer handle
-    glPushMatrix();
-    glTranslatef(0.37f, 0.7f, 4.3f);
-    glScalef(0.01f, 0.03f, 0.2f);
-    drawCube1(0.3f, 0.1f, 0, 0.15f, 0.05f, 0.0f);
-    glPopMatrix();
-
-    //wardrobe's 4th drawer handle
-    glPushMatrix();
-    glTranslatef(0.37f, 0.3f, 4.3f);
-    glScalef(0.01f, 0.03f, 0.2f);
-    drawCube1(0.3f, 0.1f, 0, 0.15f, 0.05f, 0.0f);
-    glPopMatrix();
+        // Handle
+        glPushMatrix();
+        glTranslatef(0.37f, 1.5f - (i * 0.4f), 4.3f);
+        glScalef(0.01f, 0.03f, 0.2f);
+        drawCube1(0.3f, 0.1f, 0, 0.15f, 0.05f, 0.0f);
+        glPopMatrix();
+    }
 }
 
+// Dressing Table Object
 void dressingTable() {
-    //Dressing table
     glPushMatrix();
-    glTranslatef(-0.5f,0.0f,-0.2f);
-    //dressing table left body
+    glTranslatef(-0.5f, 0.0f, -0.2f);
+
+    // Side Bodies
     glPushMatrix();
     glTranslatef(5.9f, 0, 4.6f);
     glScalef(0.2f, 0.2f, 0.2f);
     drawCube1(0.545f, 0.271f, 0.075f, 0.2725f, 0.1355f, 0.0375f);
     glPopMatrix();
 
-    //dressing table right body
     glPushMatrix();
     glTranslatef(7, 0, 4.6f);
     glScalef(0.2f, 0.2f, 0.2f);
     drawCube1(0.545f, 0.271f, 0.075f, 0.2725f, 0.1355f, 0.0375f);
     glPopMatrix();
 
-    //dressing table upper body
+    // Upper Body
     glPushMatrix();
     glTranslatef(5.9f, 0.6f, 4.6f);
     glScalef(0.57f, 0.1f, 0.2f);
     drawCube1(0.545f, 0.271f, 0.075f, 0.2725f, 0.1355f, 0.0375f);
     glPopMatrix();
 
-    //dressing table upper body bottom stripe
+    // Stripes and Handles
     glPushMatrix();
     glTranslatef(5.9f, 0.6f, 5.2f);
     glScalef(0.57f, 0.01f, 0.0001f);
     drawCube1(0.2f, 0.1f, 0.1f, 0.1f, 0.05f, 0.05f);
     glPopMatrix();
 
-    //dressing table upper body upper stripe
     glPushMatrix();
     glTranslatef(5.9f, 0.9f, 5.2f);
     glScalef(0.57f, 0.01f, 0.0001f);
     drawCube1(0.2f, 0.1f, 0.1f, 0.1f, 0.05f, 0.05f);
     glPopMatrix();
 
-    //dressing table upper body handle
     glPushMatrix();
     glTranslatef(6.5f, 0.75f, 5.2f);
     glScalef(0.16f, 0.02f, 0.0001f);
     drawCube1(0.2f, 0.1f, 0.1f, 0.1f, 0.05f, 0.05f);
     glPopMatrix();
 
-    //dressing table left body handle
     glPushMatrix();
     glTranslatef(6.4f, 0.1f, 5.2f);
     glScalef(0.02f, 0.13f, 0.0001f);
     drawCube1(0.2f, 0.1f, 0.1f, 0.1f, 0.05f, 0.05f);
     glPopMatrix();
 
-    //dressing table right body handle
     glPushMatrix();
     glTranslatef(7.1f, 0.1f, 5.2f);
     glScalef(0.02f, 0.13f, 0.0001f);
     drawCube1(0.2f, 0.1f, 0.1f, 0.1f, 0.05f, 0.05f);
     glPopMatrix();
 
-    //dressing table main mirror
+    // Mirrors
     glPushMatrix();
     glTranslatef(6.2f, 0.9f, 4.7f);
     glScalef(0.36f, 0.5f, 0.0001f);
     drawCube1(0.690f, 0.878f, 0.902f, 0.345f, 0.439f, 0.451f, 10);
     glPopMatrix();
 
-    //dressing table left mirror
     glPushMatrix();
     glTranslatef(5.92f, 0.9f, 4.7f);
     glScalef(0.1f, 0.48f, 0.0001f);
     drawCube1(0.690f, 0.878f, 0.902f, 0.345f, 0.439f, 0.451f, 10);
     glPopMatrix();
 
-    //dressing table left mirror left stripe
+    // Mirror Borders and Stripes
     glPushMatrix();
     glTranslatef(5.92f, 0.9f, 4.71f);
     glScalef(0.019f, 0.48f, 0.0001f);
     drawCube1(0.2f, 0.1f, 0.1f, 0.1f, 0.05f, 0.05f);
     glPopMatrix();
 
-    //dressing table left mirror right stripe
     glPushMatrix();
     glTranslatef(6.17f, 0.9f, 4.71f);
     glScalef(0.019f, 0.48f, 0.0001f);
     drawCube1(0.2f, 0.1f, 0.1f, 0.1f, 0.05f, 0.05f);
     glPopMatrix();
 
-    //dressing table mirror stripe
     glPushMatrix();
     glTranslatef(5.92f, 0.9f, 4.71f);
     glScalef(0.55f, 0.019f, 0.0001f);
     drawCube1(0.2f, 0.1f, 0.1f, 0.1f, 0.05f, 0.05f);
     glPopMatrix();
 
-    //dressing table left mirror upper stripe
     glPushMatrix();
     glTranslatef(5.92f, 2.3f, 4.71f);
     glScalef(0.1f, 0.019f, 0.0001f);
     drawCube1(0.2f, 0.1f, 0.1f, 0.1f, 0.05f, 0.05f);
     glPopMatrix();
 
-    //dressing table right mirror
     glPushMatrix();
     glTranslatef(7.25f, 0.9f, 4.7f);
     glScalef(0.1f, 0.48f, 0.0001f);
     drawCube1(0.690f, 0.878f, 0.902f, 0.345f, 0.439f, 0.451f, 10);
     glPopMatrix();
 
-    //dressing table right mirror upper stripe
     glPushMatrix();
     glTranslatef(7.25f, 2.3f, 4.71f);
     glScalef(0.1f, 0.019f, 0.0001f);
     drawCube1(0.2f, 0.1f, 0.1f, 0.1f, 0.05f, 0.05f);
     glPopMatrix();
 
-    //dressing table right mirror left stripe
     glPushMatrix();
     glTranslatef(7.25f, 0.9f, 4.71f);
     glScalef(0.019f, 0.48f, 0.0001f);
     drawCube1(0.2f, 0.1f, 0.1f, 0.1f, 0.05f, 0.05f);
     glPopMatrix();
 
-    //dressing table right mirror right stripe
     glPushMatrix();
     glTranslatef(7.5f, 0.9f, 4.71f);
     glScalef(0.019f, 0.48f, 0.0001f);
     drawCube1(0.2f, 0.1f, 0.1f, 0.1f, 0.05f, 0.05f);
     glPopMatrix();
 
-    //dressing table main mirror polygon part
+    // Mirror Top Polygon
     glPushMatrix();
     glTranslatef(6.2f, 2.4f, 4.7f);
     glScalef(0.18f, 0.18f, 2);
     polygon(0.690f, 0.878f, 0.902f, 0.345f, 0.439f, 0.451f, 10);
     glPopMatrix();
 
-    //dressing table upper round stripe
     glPushMatrix();
     glTranslatef(6.2f, 2.4f, 4.71f);
     glScalef(.18f, .18f, 1);
@@ -1022,22 +779,23 @@ void dressingTable() {
     glPopMatrix();
 }
 
+// Clock Object
 void Clock() {
-    //clock body
+    // Body
     glPushMatrix();
     glTranslatef(-0.9f, 1.8f, 7.87f);
     glScalef(0.08f, 0.25f, 0.1f);
     drawCube1(0.545f, 0.271f, 0.075f, 0.271f, 0.1335f, 0.0375f, 50);
     glPopMatrix();
 
-    //clock body white
+    // Face
     glPushMatrix();
     glTranslatef(-0.83f, 1.9f, 7.9f);
     glScalef(0.06f, 0.2f, 0.08f);
     drawCube1(1.000f, 0.894f, 0.710f, 1.000f, 0.894f, 0.710f);
     glPopMatrix();
 
-    //clock hour handle
+    // Hands
     glPushMatrix();
     glTranslatef(-0.65f, 2.18f, 8.01f);
     glRotatef(45, 1, 0, 0);
@@ -1045,7 +803,6 @@ void Clock() {
     drawCube1(0, 0, 0, 0, 0, 0);
     glPopMatrix();
 
-    //clock minute handle
     glPushMatrix();
     glTranslatef(-0.65f, 2.18f, 8.01f);
     glRotatef(90, 1, 0, 0);
@@ -1053,15 +810,14 @@ void Clock() {
     drawCube1(0, 0, 0, 0, 0, 0);
     glPopMatrix();
 
-    //clock pendulum stick
+    // Pendulum
     glPushMatrix();
     glTranslatef(-0.7f, 2, 8.1f);
     glRotatef((GLfloat)theta, 1, 0, 0);
     glScalef(0.0001f, 0.2f, 0.03f);
-    drawCube1(0.8f, 0.7f, 0.1f, 0.4f, 0.35f, 0.05f); // Gold color
+    drawCube1(0.8f, 0.7f, 0.1f, 0.4f, 0.35f, 0.05f);
     glPopMatrix();
 
-    //clock pendulum ball
     glPushMatrix();
     glTranslatef(-0.72f, 1.42f, (GLfloat)z);
     glScalef(0.035f, 0.035f, 0.035f);
@@ -1069,62 +825,59 @@ void Clock() {
     glPopMatrix();
 }
 
+// Window Object
 void window() {
-    const GLfloat winX = -1.49f; // X position on the wall
-    const GLfloat winY = 1.0f;   // Y position (bottom edge)
-    const GLfloat winZ = 8.9f;   // Z position (right edge)
+    const GLfloat winX = -1.49f;
+    const GLfloat winY = 1.0f;
+    const GLfloat winZ = 8.9f;
     const GLfloat winHeight = 1.8f;
     const GLfloat winWidth = 0.9f;
     const GLfloat frameThickness = 0.12f;
     const GLfloat barThickness = 0.06f;
+
+    // Glass
     glPushMatrix();
     glTranslatef(winX, winY, winZ);
     glScalef(0.0001f, winHeight / 3.0f, winWidth / 3.0f);
-    // A slightly blueish white for glass
     drawCube1(0.8f, 0.9f, 1.0f, 0.4f, 0.45f, 0.5f);
     glPopMatrix();
+
     const GLfloat frameX = winX + 0.02f;
 
-    // Frame: Bottom horizontal bar
+    // Frame Borders
     glPushMatrix();
     glTranslatef(frameX, winY, winZ);
     glScalef(frameThickness / 3.0f, frameThickness / 3.0f, winWidth / 3.0f);
     drawCube1(0.7f, 0.6f, 0.5f, 0.35f, 0.3f, 0.25f);
     glPopMatrix();
 
-    // Frame: Top horizontal bar
     glPushMatrix();
     glTranslatef(frameX, winY + winHeight - frameThickness, winZ);
     glScalef(frameThickness / 3.0f, frameThickness / 3.0f, winWidth / 3.0f);
     drawCube1(0.7f, 0.6f, 0.5f, 0.35f, 0.3f, 0.25f);
     glPopMatrix();
 
-    // Frame: Right vertical post
     glPushMatrix();
     glTranslatef(frameX, winY, winZ);
     glScalef(frameThickness / 3.0f, winHeight / 3.0f, frameThickness / 3.0f);
     drawCube1(0.8f, 0.6f, 0.4f, 0.4f, 0.3f, 0.2f);
     glPopMatrix();
 
-    // Frame: Left vertical post
     glPushMatrix();
     glTranslatef(frameX, winY, winZ + winWidth - frameThickness);
     glScalef(frameThickness / 3.0f, winHeight / 3.0f, frameThickness / 3.0f);
     drawCube1(0.8f, 0.6f, 0.4f, 0.4f, 0.3f, 0.2f);
     glPopMatrix();
 
+    // Bars
+    const GLfloat barX = frameX - 0.01f;
 
-    // Window Bars (inside the frame)
-    const GLfloat barX = frameX - 0.01f; // Place bars slightly behind the frame
-
-    // Bar: Middle horizontal
     glPushMatrix();
     glTranslatef(barX, winY + (winHeight / 2.0f) - (barThickness / 2.0f), winZ);
     glScalef(0.0001f, barThickness / 3.0f, winWidth / 3.0f);
     drawCube1(0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 5);
     glPopMatrix();
 
-    // Bar: Middle vertical
     glPushMatrix();
     glTranslatef(barX, winY, winZ + (winWidth / 2.0f) - (barThickness / 2.0f));
     glScalef(0.0001f, winHeight / 3.0f, barThickness / 3.0f);
@@ -1132,183 +885,111 @@ void window() {
     glPopMatrix();
 }
 
+// Stool Object
 void drawWoodenStool() {
     glPushMatrix();
-    // Position the stool
     glTranslatef(5.0f, -0.2f, 10.0f);
 
-    // Stool Top
+    // Seat
     glPushMatrix();
     glTranslatef(-0.45f, 0.8f, -0.45f);
     glScalef(0.3f, 0.05f, 0.3f);
-    // Use the woodTexture by passing its ID to drawCube1
     drawCube1(1.0f, 1.0f, 1.0f, 0.8f, 0.8f, 0.8f, 30, woodTexture);
     glPopMatrix();
 
-    // Leg 1 (front-left)
-    glPushMatrix();
-    glTranslatef(-0.4f, 0.0f, -0.4f);
-    glScalef(0.05f, 0.28f, 0.05f);
-    drawCube1(1.0f, 1.0f, 1.0f, 0.8f, 0.8f, 0.8f, 30, woodTexture);
-    glPopMatrix();
-
-    // Leg 2 (front-right)
-    glPushMatrix();
-    glTranslatef(0.25f, 0.0f, -0.4f);
-    glScalef(0.05f, 0.28f, 0.05f);
-    drawCube1(1.0f, 1.0f, 1.0f, 0.8f, 0.8f, 0.8f, 30, woodTexture);
-    glPopMatrix();
-
-    // Leg 3 (back-left)
-    glPushMatrix();
-    glTranslatef(-0.4f, 0.0f, 0.25f);
-    glScalef(0.05f, 0.28f, 0.05f);
-    drawCube1(1.0f, 1.0f, 1.0f, 0.8f, 0.8f, 0.8f, 30, woodTexture);
-    glPopMatrix();
-
-    // Leg 4 (back-right)
-    glPushMatrix();
-    glTranslatef(0.25f, 0.0f, 0.25f);
-    glScalef(0.05f, 0.28f, 0.05f);
-    drawCube1(1.0f, 1.0f, 1.0f, 0.8f, 0.8f, 0.8f, 30, woodTexture);
-    glPopMatrix();
-
+    // Legs
+    float legPositions[4][2] = { {-0.4f, -0.4f}, {0.25f, -0.4f}, {-0.4f, 0.25f}, {0.25f, 0.25f} };
+    for (int i = 0; i < 4; i++) {
+        glPushMatrix();
+        glTranslatef(legPositions[i][0], 0.0f, legPositions[i][1]);
+        glScalef(0.05f, 0.28f, 0.05f);
+        drawCube1(1.0f, 1.0f, 1.0f, 0.8f, 0.8f, 0.8f, 30, woodTexture);
+        glPopMatrix();
+    }
     glPopMatrix();
 }
 
-// Helper to set materials similar to your drawCube1 function
-void setMaterial(GLfloat difX, GLfloat difY, GLfloat difZ, GLfloat ambX, GLfloat ambY, GLfloat ambZ, GLfloat shine = 50) {
-    GLfloat mat_ambient[] = { ambX, ambY, ambZ, 1.0f };
-    GLfloat mat_diffuse[] = { difX, difY, difZ, 1.0f };
-    GLfloat mat_specular[] = { 1.0f, 1.0f, 1.0f, 1.0f };
-    GLfloat mat_shininess[] = { shine };
-    GLfloat no_mat[] = { 0.0f, 0.0f, 0.0f, 1.0f };
-
-    glMaterialfv(GL_FRONT, GL_AMBIENT, mat_ambient);
-    glMaterialfv(GL_FRONT, GL_DIFFUSE, mat_diffuse);
-    glMaterialfv(GL_FRONT, GL_SPECULAR, mat_specular);
-    glMaterialfv(GL_FRONT, GL_SHININESS, mat_shininess);
-    glMaterialfv(GL_FRONT, GL_EMISSION, no_mat);
-}
-
+// Ceiling Fan Object
 void drawCeilingFan() {
-    // Basic setup variables
     const float centerX = 0.3f;
     const float centerZ = 0.3f;
 
     glPushMatrix();
     glTranslatef(2.5f, 5.0f, 7.5f);
 
-    // Base cone shape
+    // Mount
     glPushMatrix();
-    glTranslatef(centerX, 0.0f, centerZ); // Move to center pivot
-
-    // gluCylinder draws along +Z, so we rotate 90 deg on X to point it down
+    glTranslatef(centerX, 0.0f, centerZ);
     glRotatef(90.0f, 1.0f, 0.0f, 0.0f);
-
-    setMaterial(0.8f, 0.8f, 0.8f, 0.4f, 0.4f, 0.4f); // Greyish
-    // BaseRadius=0.15 (ceiling), TopRadius=0.05 (connecting to rod), Height=0.2
+    setMaterial(0.8f, 0.8f, 0.8f, 0.4f, 0.4f, 0.4f);
     gluCylinder(quad, 0.15, 0.05, 0.2, 32, 32);
-
-    // Add a disk to close the top against the ceiling
     gluDisk(quad, 0.0, 0.15, 32, 1);
     glPopMatrix();
 
-    // Down rod
+    // Rod
     glPushMatrix();
-    glTranslatef(centerX, -0.2f, centerZ); // Start slightly below ceiling
-    glRotatef(90.0f, 1.0f, 0.0f, 0.0f);      // Point down
-
-    setMaterial(0.7f, 0.7f, 0.7f, 0.35f, 0.35f, 0.35f); // Darker grey
-    // Radius=0.03, Height=0.8
+    glTranslatef(centerX, -0.2f, centerZ);
+    glRotatef(90.0f, 1.0f, 0.0f, 0.0f);
+    setMaterial(0.7f, 0.7f, 0.7f, 0.35f, 0.35f, 0.35f);
     gluCylinder(quad, 0.03, 0.03, 0.8, 32, 32);
     glPopMatrix();
 
-	// Motor housing
+    // Motor
     glPushMatrix();
-    glTranslatef(centerX, -1.0f, centerZ); // End of the rod
-
-    setMaterial(0.9f, 0.9f, 0.9f, 0.45f, 0.45f, 0.45f); // White/Grey
-
-    // Scale it to make it look like a motor (wider than it is tall)
+    glTranslatef(centerX, -1.0f, centerZ);
+    setMaterial(0.9f, 0.9f, 0.9f, 0.45f, 0.45f, 0.45f);
     glScalef(1.0f, 0.6f, 1.0f);
-    gluSphere(quad, 0.25, 32, 32); // Radius 0.25
+    gluSphere(quad, 0.25, 32, 32);
     glPopMatrix();
 
-	// Fan Blades
+    // Blades
     glPushMatrix();
-    glTranslatef(centerX, -1.1f, centerZ); // Move pivot to bottom of motor
-    glRotatef(fanRotationAngle, 0.0f, 1.0f, 0.0f); // Apply rotation
+    glTranslatef(centerX, -1.1f, centerZ);
+    glRotatef(fanRotationAngle, 0.0f, 1.0f, 0.0f);
+    setMaterial(0.9f, 0.9f, 0.9f, 0.45f, 0.45f, 0.45f, 50);
 
-    setMaterial(0.9f, 0.9f, 0.9f, 0.45f, 0.45f, 0.45f, 50); // High shine blades
-
-    // Draw 4 blades
     for (int i = 0; i < 4; ++i) {
         glPushMatrix();
-        glRotatef(i * 90.0f, 0.0f, 1.0f, 0.0f); // Rotate for each blade
-
-        // Move blade out from center slightly
+        glRotatef(i * 90.0f, 0.0f, 1.0f, 0.0f);
         glTranslatef(0.35f, 0.0f, 0.0f);
-
         glScalef(0.6f, 0.02f, 0.15f);
         gluSphere(quad, 1.0, 32, 32);
         glPopMatrix();
     }
-    glPopMatrix(); // End rotation loop
-    glPopMatrix(); // End Fan Assembly
+    glPopMatrix();
+    glPopMatrix();
 }
 
-
+// Light Bulb Mesh
 void lightBulb() {
-    GLfloat no_mat[] = { 0.0f, 0.0f, 0.0f, 1.0f };
-    GLfloat mat_ambient[] = { 0.7f, 0.7f, 0.7f, 1.0f };
-    GLfloat mat_ambient_color[] = { 0.8f, 0.8f, 0.2f, 1.0f };
-    GLfloat mat_diffuse[] = { 1.000f, 0.843f, 0.000f, 1.0f };
-    GLfloat mat_specular[] = { 1.0f, 1.0f, 1.0f, 1.0f };
-    GLfloat high_shininess[] = { 100.0f };
-    GLfloat mat_emission[] = { 1.000f, 1, 1, 0.0f };
     glPushMatrix();
     glTranslatef(5, 5, 8);
     glScalef(0.2f, 0.2f, 0.2f);
-    glMaterialfv(GL_FRONT, GL_AMBIENT, no_mat);
-    glMaterialfv(GL_FRONT, GL_DIFFUSE, mat_diffuse);
-    glMaterialfv(GL_FRONT, GL_SPECULAR, no_mat);
-    glMaterialfv(GL_FRONT, GL_SHININESS, high_shininess);
+    setMaterial(1.0f, 0.843f, 0.0f, 0.0f, 0.0f, 0.0f, 100.0f);
+
     if (switchOne == GL_TRUE) {
+        GLfloat mat_emission[] = { 1.0f, 1.0f, 1.0f, 1.0f };
         glMaterialfv(GL_FRONT, GL_EMISSION, mat_emission);
-    }
-    else {
-        glMaterialfv(GL_FRONT, GL_EMISSION, no_mat);
     }
     glutSolidSphere(1.0, 16, 16);
     glPopMatrix();
 }
 
 void lightBulb3() {
-    GLfloat no_mat[] = { 0.0f, 0.0f, 0.0f, 1.0f };
-    GLfloat mat_ambient[] = { 0.7f, 0.7f, 0.7f, 1.0f };
-    GLfloat mat_ambient_color[] = { 0.8f, 0.8f, 0.2f, 1.0f };
-    GLfloat mat_diffuse[] = { 1.000f, 0.843f, 0.000f, 1.0f };
-    GLfloat high_shininess[] = { 100.0f };
-    GLfloat mat_emission[] = { 1, 1, 1, 1.0f };
-
     glPushMatrix();
     glTranslatef(0.7f, 1.5f, 9.0f);
     glScalef(0.2f, 0.2f, 0.2f);
-    glMaterialfv(GL_FRONT, GL_AMBIENT, no_mat);
-    glMaterialfv(GL_FRONT, GL_DIFFUSE, mat_diffuse);
-    glMaterialfv(GL_FRONT, GL_SPECULAR, no_mat);
-    glMaterialfv(GL_FRONT, GL_SHININESS, high_shininess);
+    setMaterial(1.000f, 0.843f, 0.000f, 0.0f, 0.0f, 0.0f, 100.0f);
+
     if (switchLamp == GL_TRUE) {
+        GLfloat mat_emission[] = { 1.0f, 1.0f, 1.0f, 1.0f };
         glMaterialfv(GL_FRONT, GL_EMISSION, mat_emission);
-    }
-    else {
-        glMaterialfv(GL_FRONT, GL_EMISSION, no_mat);
     }
     glutSolidSphere(1.0, 16, 16);
     glPopMatrix();
 }
 
+// Main Light Logic
 void lightOne() {
     glPushMatrix();
     GLfloat light_ambient[] = { 0.5f, 0.5f, 0.5f, 1.0f };
@@ -1316,11 +997,9 @@ void lightOne() {
     GLfloat light_specular[] = { 1.0f, 1.0f, 1.0f, 1.0f };
     GLfloat light_position[] = { 5.0f, 5.0f, 8.0f, 1.0f };
 
-    // Always set position
     glLightfv(GL_LIGHT0, GL_POSITION, light_position);
 
     if (switchOne == GL_TRUE) {
-        // Apply all light components
         glLightfv(GL_LIGHT0, GL_AMBIENT, light_ambient);
         glLightfv(GL_LIGHT0, GL_DIFFUSE, light_diffuse);
         glLightfv(GL_LIGHT0, GL_SPECULAR, light_specular);
@@ -1329,10 +1008,10 @@ void lightOne() {
     else {
         glDisable(GL_LIGHT0);
     }
-
     glPopMatrix();
 }
 
+// Lamp Light Logic
 void lampLight() {
     glPushMatrix();
     GLfloat light_ambient[] = { 0.5f, 0.5f, 0.5f, 1.0f };
@@ -1340,14 +1019,12 @@ void lampLight() {
     GLfloat light_specular[] = { 1.0f, 1.0f, 1.0f, 1.0f };
     GLfloat light_position[] = { 0.7f, 1.5f, 9.0f, 1.0f };
 
-    // Always set position and spot direction
     glLightfv(GL_LIGHT2, GL_POSITION, light_position);
     GLfloat spot_direction[] = { 0.3f, -1, -0.8f };
     glLightfv(GL_LIGHT2, GL_SPOT_DIRECTION, spot_direction);
     glLightf(GL_LIGHT2, GL_SPOT_CUTOFF, 35.0f);
 
     if (switchLamp == GL_TRUE) {
-        // Apply all light components
         glLightfv(GL_LIGHT2, GL_AMBIENT, light_ambient);
         glLightfv(GL_LIGHT2, GL_DIFFUSE, light_diffuse);
         glLightfv(GL_LIGHT2, GL_SPECULAR, light_specular);
@@ -1359,10 +1036,9 @@ void lampLight() {
     glPopMatrix();
 }
 
-// FPS Camera Movement Functions
+// Camera Movement Logic
 void processMovement() {
     float radYaw = yaw * M_PI / 180.0f;
-    // Forward/Backward movement
     if (keys['w'] || keys['W']) {
         eyeX += sin(radYaw) * cameraSpeed;
         eyeZ += cos(radYaw) * cameraSpeed;
@@ -1371,7 +1047,6 @@ void processMovement() {
         eyeX -= sin(radYaw) * cameraSpeed;
         eyeZ -= cos(radYaw) * cameraSpeed;
     }
-    // Strafe left/right
     if (keys['a'] || keys['A']) {
         eyeX += cos(radYaw) * cameraSpeed;
         eyeZ -= sin(radYaw) * cameraSpeed;
@@ -1380,7 +1055,6 @@ void processMovement() {
         eyeX -= cos(radYaw) * cameraSpeed;
         eyeZ += sin(radYaw) * cameraSpeed;
     }
-    // Vertical movement
     if (keys['q'] || keys['Q']) {
         eyeY += cameraSpeed;
     }
@@ -1390,25 +1064,21 @@ void processMovement() {
     updateCamera();
 }
 
-// Mouse motion callback for FPS camera
+// Mouse Controls
 void mouseMotion(int x, int y) {
     if (!mouseActive) return;
     int deltaX = x - lastMouseX;
     int deltaY = y - lastMouseY;
-    // Mouse sensitivity
     float sensitivity = 0.2f;
-    // rotation angles
     yaw -= deltaX * sensitivity;
     pitch -= deltaY * sensitivity;
-    // Clamp pitch to prevent camera flipping
+
     if (pitch > 89.0f) pitch = 89.0f;
     if (pitch < -89.0f) pitch = -89.0f;
-    // Wrap yaw around 360 degrees
     if (yaw > 360.0f) yaw -= 360.0f;
     if (yaw < 0.0f) yaw += 360.0f;
-    // Update camera
+
     updateCamera();
-    // Warp mouse back to center to prevent hitting screen edges
     int centerX = windowWidth / 2;
     int centerY = windowHeight / 2;
     glutWarpPointer(centerX, centerY);
@@ -1417,11 +1087,11 @@ void mouseMotion(int x, int y) {
     glutPostRedisplay();
 }
 
-// Passive mouse motion (when no button pressed)
 void mousePassiveMotion(int x, int y) {
     mouseMotion(x, y);
 }
 
+// Main Display Loop
 void display(void) {
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     glMatrixMode(GL_PROJECTION);
@@ -1430,9 +1100,11 @@ void display(void) {
     glMatrixMode(GL_MODELVIEW);
     glLoadIdentity();
     gluLookAt(eyeX, eyeY, eyeZ, refX, refY, refZ, 0, 1, 0);
+
     glEnable(GL_LIGHTING);
     lightOne();
     lampLight();
+
     room();
     drawCarpet();
     bed();
@@ -1448,20 +1120,20 @@ void display(void) {
     drawCeilingFan();
     lightBulb();
     drawHouseDoor();
-    //lightBulb3();
+
     glDisable(GL_LIGHTING);
     glFlush();
     glutSwapBuffers();
 }
 
+// Keyboard Controls
 void myKeyboardFunc(unsigned char key, int x, int y) {
-    keys[key] = true;  // Mark key as pressed
+    keys[key] = true;
     switch (key) {
-    case 27:   // ESC key - toggle mouse capture
+    case 27: // ESC
         mouseActive = !mouseActive;
         if (mouseActive) {
             glutSetCursor(GLUT_CURSOR_NONE);
-            // Center mouse
             int centerX = windowWidth / 2;
             int centerY = windowHeight / 2;
             glutWarpPointer(centerX, centerY);
@@ -1472,25 +1144,20 @@ void myKeyboardFunc(unsigned char key, int x, int y) {
             glutSetCursor(GLUT_CURSOR_LEFT_ARROW);
         }
         break;
-    case 'f':
-    case 'F':
+    case 'f': case 'F':
         if (doorAngle < 90.0f) {
-            doorOpening = true;
-            doorClosing = false;
+            doorOpening = true; doorClosing = false;
         }
         else if (doorAngle > 0.0f) {
-            doorClosing = true;
-            doorOpening = false;
+            doorClosing = true; doorOpening = false;
         }
         break;
-    case '1': // Master switch for Light One
-        switchOne = !switchOne; // Toggles between True and False
+    case '1':
+        switchOne = !switchOne;
         break;
-
-    case '2': // Master switch for Lamp Light
-        switchLamp = !switchLamp; // Toggles between True and False
+    case '2':
+        switchLamp = !switchLamp;
         break;
-
     case 'r': case 'R':
         isFanOn = !isFanOn;
         break;
@@ -1499,68 +1166,53 @@ void myKeyboardFunc(unsigned char key, int x, int y) {
 }
 
 void myKeyboardUpFunc(unsigned char key, int x, int y) {
-    keys[key] = false;  // Mark key as released
+    keys[key] = false;
 }
 
+// Animation Loop
 void animate() {
-    // Process continuous movement
     processMovement();
     updateDoorAnimation();
-    // fan rotation
-    if (isFanOn) {  // Only rotate if the switch is on
+
+    if (isFanOn) {
         fanRotationAngle += fanSpeed;
-        if (fanRotationAngle > 360.0f) {
-            fanRotationAngle -= 360.0f;
-        }
+        if (fanRotationAngle > 360.0f) fanRotationAngle -= 360.0f;
     }
+
+    // Pendulum Animation
     if (redFlag == GL_TRUE) {
-        theta += 0.5; // Slower speed
-        z -= 0.005;  // Adjusted z-movement to match slower speed
-        if (theta >= 196 && theta <= 210) {
-            y = 1.44;
-        } else if (theta >= 180 && theta <= 194) {
-            y = 1.42;
-        } else if (theta >= 180 && theta <= 194) {
-            y = 1.4;
-        } else if (theta >= 164 && theta <= 178) {
-            y = 1.42;
-        }
-        if (theta >= 210) {
-            redFlag = GL_FALSE;
-        }
-    } else if (redFlag == GL_FALSE) {
-        theta -= 0.5; // speed
+        theta += 0.5;
+        z -= 0.005;
+        if (theta >= 196 && theta <= 210) y = 1.44;
+        else if (theta >= 180 && theta <= 194) y = 1.42;
+        else if (theta >= 164 && theta <= 178) y = 1.42;
+        if (theta >= 210) redFlag = GL_FALSE;
+    }
+    else {
+        theta -= 0.5;
         z += 0.005;
-        if (theta >= 196 && theta <= 210) {
-            y = 1.44;
-        } else if (theta >= 180 && theta <= 194) {
-            y = 1.42;
-        } else if (theta >= 180 && theta <= 194) {
-            y = 1.4;
-        } else if (theta >= 164 && theta <= 178) {
-            y = 1.42;
-        }
-        if (theta <= 150) {
-            redFlag = GL_TRUE;
-        }
+        if (theta >= 196 && theta <= 210) y = 1.44;
+        else if (theta >= 180 && theta <= 194) y = 1.42;
+        else if (theta >= 164 && theta <= 178) y = 1.42;
+        if (theta <= 150) redFlag = GL_TRUE;
     }
     glutPostRedisplay();
 }
 
+// Reshape Handler
 void fullScreen(int w, int h) {
     windowWidth = w;
     windowHeight = h;
-    if (h == 0)
-        h = 1;
+    if (h == 0) h = 1;
     float ratio = (GLfloat)w / (GLfloat)h;
-    //Set the perspective coordinate system
-    glMatrixMode(GL_PROJECTION);           //Use the Projection Matrix
-    glLoadIdentity();                   //Reset Matrix
-    glViewport(0, 0, w, h);       //Set the viewport to be the entire window
-    gluPerspective(60, ratio, 1, 100); //Set the correct perspective.
-    glMatrixMode(GL_MODELVIEW);           //Get Back to the Modelview
+    glMatrixMode(GL_PROJECTION);
+    glLoadIdentity();
+    glViewport(0, 0, w, h);
+    gluPerspective(60, ratio, 1, 100);
+    glMatrixMode(GL_MODELVIEW);
 }
 
+// Main
 int main(int argc, char** argv) {
     glutInit(&argc, argv);
     glutInitDisplayMode(GLUT_DOUBLE | GLUT_RGB | GLUT_DEPTH);
@@ -1575,10 +1227,9 @@ int main(int argc, char** argv) {
     glShadeModel(GL_SMOOTH);
     glEnable(GL_DEPTH_TEST);
     glEnable(GL_NORMALIZE);
-    // Load all textures
+
     loadAllTextures();
 
-    // Initialize mouse capture
     glutSetCursor(GLUT_CURSOR_NONE);
     lastMouseX = windowWidth / 2;
     lastMouseY = windowHeight / 2;
