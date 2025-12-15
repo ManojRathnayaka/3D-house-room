@@ -33,6 +33,17 @@ float fanRotationAngle = 0.0f;
 const float fanSpeed = 2.5f;
 bool isFanOn = false;
 
+bool curtainOpen = false;
+bool curtainOpening = false;
+bool curtainClosing = false;
+
+// Scale: 1.0f = Fully Closed (flat), 0.1f = Fully Open (shrunk/bunched up)
+float curtainScale = 1.0f;
+const float curtainSpeed = 0.03f; // Speed of shrinking
+
+// sunIntensity ranges from approx 0.2 (closed) to 1.0 (open)
+float sunIntensity = 0.2f;
+
 // Texture IDs
 GLuint woodTexture;
 GLuint posterTexture;
@@ -827,63 +838,87 @@ void Clock() {
     glPopMatrix();
 }
 
-// Window Object
 void window() {
-    const GLfloat winX = -1.49f;
-    const GLfloat winY = 1.0f;
-    const GLfloat winZ = 8.9f;
-    const GLfloat winHeight = 1.8f;
-    const GLfloat winWidth = 0.9f;
-    const GLfloat frameThickness = 0.12f;
-    const GLfloat barThickness = 0.06f;
-
-    // Glass
     glPushMatrix();
-    glTranslatef(winX, winY, winZ);
-    glScalef(0.0001f, winHeight / 3.0f, winWidth / 3.0f);
-    drawCube1(0.8f, 0.9f, 1.0f, 0.4f, 0.45f, 0.5f);
-    glPopMatrix();
+    // Position on the right wall
+    glTranslatef(7.95f, 2.5f, 9.0f);
+    glRotatef(-90.0f, 0.0f, 1.0f, 0.0f);
 
-    const GLfloat frameX = winX + 0.02f;
+    float winWidth = 3.4f;
+    float winHeight = 2.8f;
+    float frameThick = 0.15f;
 
-    // Frame Borders
-    glPushMatrix();
-    glTranslatef(frameX, winY, winZ);
-    glScalef(frameThickness / 3.0f, frameThickness / 3.0f, winWidth / 3.0f);
-    drawCube1(0.7f, 0.6f, 0.5f, 0.35f, 0.3f, 0.25f);
-    glPopMatrix();
+    // The Sky
+    float glow = sunIntensity * 0.8f;
+    if (glow > 1.0f) glow = 1.0f;
+    GLfloat skyColor[] = { 0.529f, 0.808f, 0.922f };
+    GLfloat skyEmission[] = { skyColor[0] * glow, skyColor[1] * glow, skyColor[2] * glow, 1.0f };
 
-    glPushMatrix();
-    glTranslatef(frameX, winY + winHeight - frameThickness, winZ);
-    glScalef(frameThickness / 3.0f, frameThickness / 3.0f, winWidth / 3.0f);
-    drawCube1(0.7f, 0.6f, 0.5f, 0.35f, 0.3f, 0.25f);
-    glPopMatrix();
+    glMaterialfv(GL_FRONT, GL_AMBIENT_AND_DIFFUSE, skyColor);
+    glMaterialfv(GL_FRONT, GL_EMISSION, skyEmission);
 
-    glPushMatrix();
-    glTranslatef(frameX, winY, winZ);
-    glScalef(frameThickness / 3.0f, winHeight / 3.0f, frameThickness / 3.0f);
-    drawCube1(0.8f, 0.6f, 0.4f, 0.4f, 0.3f, 0.2f);
-    glPopMatrix();
+    glBegin(GL_QUADS);
+    glNormal3f(0.0f, 0.0f, 1.0f);
+    glVertex3f(-winWidth / 2, -winHeight / 2, -0.02f); // Fixed Z
+    glVertex3f(winWidth / 2, -winHeight / 2, -0.02f);
+    glVertex3f(winWidth / 2, winHeight / 2, -0.02f);
+    glVertex3f(-winWidth / 2, winHeight / 2, -0.02f);
+    glEnd();
+
+    // Turn off emission
+    GLfloat no_emission[] = { 0.0f, 0.0f, 0.0f, 1.0f };
+    glMaterialfv(GL_FRONT, GL_EMISSION, no_emission);
+
+    // Frame & Bars
+    setMaterial(0.4f, 0.25f, 0.1f, 0.2f, 0.1f, 0.05f);
 
     glPushMatrix();
-    glTranslatef(frameX, winY, winZ + winWidth - frameThickness);
-    glScalef(frameThickness / 3.0f, winHeight / 3.0f, frameThickness / 3.0f);
-    drawCube1(0.8f, 0.6f, 0.4f, 0.4f, 0.3f, 0.2f);
-    glPopMatrix();
+    glTranslatef(0.0f, 0.0f, 0.05f);
+
+    // Outer Frame
+    glPushMatrix(); glTranslatef(0, winHeight / 2 + frameThick / 2, 0); glScalef(winWidth + frameThick * 2, frameThick, frameThick); glutSolidCube(1.0); glPopMatrix();
+    glPushMatrix(); glTranslatef(0, -winHeight / 2 - frameThick / 2, 0); glScalef(winWidth + frameThick * 2, frameThick, frameThick); glutSolidCube(1.0); glPopMatrix();
+    glPushMatrix(); glTranslatef(-winWidth / 2 - frameThick / 2, 0, 0); glScalef(frameThick, winHeight, frameThick); glutSolidCube(1.0); glPopMatrix();
+    glPushMatrix(); glTranslatef(winWidth / 2 + frameThick / 2, 0, 0); glScalef(frameThick, winHeight, frameThick); glutSolidCube(1.0); glPopMatrix();
 
     // Bars
-    const GLfloat barX = frameX - 0.01f;
+    glPushMatrix(); glScalef(0.1f, winHeight, 0.05f); glutSolidCube(1.0); glPopMatrix();
+    glPushMatrix(); glScalef(winWidth, 0.1f, 0.05f); glutSolidCube(1.0); glPopMatrix();
 
+    glPopMatrix(); // End Frame Shift
+
+    // Curtains
+    setMaterial(0.6f, 0.1f, 0.1f, 0.3f, 0.05f, 0.05f, 10);
+
+    float curtainTotalWidth = winWidth + 1.0f;
+    float curtainHeight = winHeight + 1.2f;
+    float curtainYOffset = 0.1f;
+
+    float fullPanelWidth = curtainTotalWidth / 2.0f;
+    float currentPanelWidth = fullPanelWidth * curtainScale;
+
+    // Left Panel
     glPushMatrix();
-    glTranslatef(barX, winY + (winHeight / 2.0f) - (barThickness / 2.0f), winZ);
-    glScalef(0.0001f, barThickness / 3.0f, winWidth / 3.0f);
-    drawCube1(0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 5);
+    glTranslatef((-curtainTotalWidth / 2.0f) + (currentPanelWidth / 2.0f), curtainYOffset, 0.2f);
+    glScalef(currentPanelWidth, curtainHeight, 0.1f);
+    glutSolidCube(1.0);
     glPopMatrix();
 
+    // Right Panel
     glPushMatrix();
-    glTranslatef(barX, winY, winZ + (winWidth / 2.0f) - (barThickness / 2.0f));
-    glScalef(0.0001f, winHeight / 3.0f, barThickness / 3.0f);
-    drawCube1(0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 5);
+    glTranslatef((curtainTotalWidth / 2.0f) - (currentPanelWidth / 2.0f), curtainYOffset, 0.2f);
+    glScalef(currentPanelWidth, curtainHeight, 0.1f);
+    glutSolidCube(1.0);
+    glPopMatrix();
+
+    // Rod
+    setMaterial(0.2f, 0.2f, 0.2f, 0.1f, 0.1f, 0.1f, 50);
+    glPushMatrix();
+    glTranslatef(0.0f, curtainYOffset + (curtainHeight / 2.0f) - 0.1f, 0.25f);
+    glScalef(curtainTotalWidth + 0.2f, 0.05f, 0.05f);
+    glutSolidCube(1.0);
+    glPopMatrix();
+
     glPopMatrix();
 }
 
@@ -1068,6 +1103,35 @@ void lampLight() {
     glPopMatrix();
 }
 
+void sunLight() {
+    glPushMatrix();
+    GLfloat light_position[] = { 15.0f, 6.0f, 9.0f, 1.0f };
+    GLfloat localIntensity = sunIntensity;
+    if (localIntensity < 0.01f) localIntensity = 0.0f;
+
+    // 3. Colors
+    // Ambient is very low to allow for total darkness
+    GLfloat light_ambient[] = { localIntensity * 0.1f, localIntensity * 0.1f, localIntensity * 0.1f, 1.0f };
+
+    // Diffuse/Specular are high to simulate bright sun
+    GLfloat light_diffuse[] = { localIntensity, localIntensity, localIntensity * 0.9f, 1.0f };
+    GLfloat light_specular[] = { localIntensity, localIntensity, localIntensity, 1.0f };
+
+    glLightfv(GL_LIGHT1, GL_POSITION, light_position);
+    glLightfv(GL_LIGHT1, GL_AMBIENT, light_ambient);
+    glLightfv(GL_LIGHT1, GL_DIFFUSE, light_diffuse);
+    glLightfv(GL_LIGHT1, GL_SPECULAR, light_specular);
+
+    // Turn off light 1 entirely if intensity is 0 to save processing/prevent artifacts
+    if (localIntensity > 0.0f) {
+        glEnable(GL_LIGHT1);
+    }
+    else {
+        glDisable(GL_LIGHT1);
+    }
+    glPopMatrix();
+}
+
 // Camera Movement Logic
 void processMovement() {
     float radYaw = yaw * M_PI / 180.0f;
@@ -1136,6 +1200,7 @@ void display(void) {
     glEnable(GL_LIGHTING);
     lightOne();
     lampLight();
+    sunLight();
 
     room();
     drawCarpet();
@@ -1194,6 +1259,14 @@ void myKeyboardFunc(unsigned char key, int x, int y) {
     case 'r': case 'R':
         isFanOn = !isFanOn;
         break;
+    case 'c': case 'C':
+        if (curtainOpen) {
+            curtainClosing = true; curtainOpening = false;
+        }
+        else {
+            curtainOpening = true; curtainClosing = false;
+        }
+        break;
     }
     glutPostRedisplay();
 }
@@ -1202,16 +1275,36 @@ void myKeyboardUpFunc(unsigned char key, int x, int y) {
     keys[key] = false;
 }
 
-// Animation Loop
 void animate() {
     processMovement();
     updateDoorAnimation();
 
+    // Curtain Scaling Logic
+    if (curtainOpening) {
+        curtainScale -= curtainSpeed;
+        if (curtainScale <= 0.15f) { // Stop when bunched up (0.15 width)
+            curtainScale = 0.15f;
+            curtainOpening = false;
+            curtainOpen = true;
+        }
+    }
+    else if (curtainClosing) {
+        curtainScale += curtainSpeed;
+        if (curtainScale >= 1.0f) { // Stop when fully flat (1.0 width)
+            curtainScale = 1.0f;
+            curtainClosing = false;
+            curtainOpen = false;
+        }
+    }
+    float openFactor = (1.0f - curtainScale) / (1.0f - 0.15f); // Normalized 0.0 to 1.0
+    if (openFactor < 0.0f) openFactor = 0.0f; // Clamp to 0
+    // Max intensity 1.3 for a bright day
+    sunIntensity = openFactor * 1.3f;
     if (isFanOn) {
         fanRotationAngle += fanSpeed;
         if (fanRotationAngle > 360.0f) fanRotationAngle -= 360.0f;
     }
-
+    // Pendulum Logic
     if (redFlag == GL_TRUE) {
         theta += 0.5;
         if (theta >= 210) redFlag = GL_FALSE;
@@ -1242,7 +1335,7 @@ int main(int argc, char** argv) {
     glutInitDisplayMode(GLUT_DOUBLE | GLUT_RGB | GLUT_DEPTH);
     glutInitWindowPosition(10, 10);
     glutInitWindowSize((int)windowWidth, (int)windowHeight);
-    glutCreateWindow("Bedroom - FPS Controls");
+    glutCreateWindow("3D Bedroom");
 
     quad = gluNewQuadric();
     gluQuadricNormals(quad, GLU_SMOOTH);
