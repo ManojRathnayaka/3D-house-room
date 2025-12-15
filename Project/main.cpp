@@ -20,7 +20,7 @@ GLboolean redFlag = GL_TRUE;
 bool switchOne = false, switchLamp = false;
 double windowHeight = 680, windowWidth = 1340;
 double eyeX = 2.8, eyeY = 2.0, eyeZ = 20.0, refX = 0, refY = 0, refZ = 0;
-double theta = 180.0, y = 1.36, z = 7.97888;
+double theta = 180.0, z = 8.05;
 
 // Door Animation Variables
 float doorAngle = 0.0f;
@@ -545,7 +545,7 @@ void lamp() {
 // Poster Object
 void drawPoster() {
     glPushMatrix();
-    glTranslatef(-1.0f, 1.5f, 11.0f);
+    glTranslatef(-1.49f, 1.5f, 11.0f);
 
     float height = 1.95f;
     float width = 2.4f;
@@ -779,49 +779,51 @@ void dressingTable() {
     glPopMatrix();
 }
 
-// Clock Object
 void Clock() {
-    // Body
+    // Clock Body
     glPushMatrix();
-    glTranslatef(-0.9f, 1.8f, 7.87f);
+    glTranslatef(-1.49f, 1.8f, 7.87f);
     glScalef(0.08f, 0.25f, 0.1f);
     drawCube1(0.545f, 0.271f, 0.075f, 0.271f, 0.1335f, 0.0375f, 50);
     glPopMatrix();
 
-    // Face
+    // Clock Face
     glPushMatrix();
-    glTranslatef(-0.83f, 1.9f, 7.9f);
+    glTranslatef(-1.42f, 1.9f, 7.9f);
     glScalef(0.06f, 0.2f, 0.08f);
     drawCube1(1.000f, 0.894f, 0.710f, 1.000f, 0.894f, 0.710f);
     glPopMatrix();
 
-    // Hands
+    // Hands 
     glPushMatrix();
-    glTranslatef(-0.65f, 2.18f, 8.01f);
+    glTranslatef(-1.24f, 2.18f, 8.01f);
     glRotatef(45, 1, 0, 0);
     glScalef(0.0001f, 0.01f, 0.04f);
     drawCube1(0, 0, 0, 0, 0, 0);
     glPopMatrix();
 
     glPushMatrix();
-    glTranslatef(-0.65f, 2.18f, 8.01f);
+    glTranslatef(-1.24f, 2.18f, 8.01f);
     glRotatef(90, 1, 0, 0);
     glScalef(0.0001f, 0.012f, 0.08f);
     drawCube1(0, 0, 0, 0, 0, 0);
     glPopMatrix();
 
-    // Pendulum
+    // pendulum
     glPushMatrix();
-    glTranslatef(-0.7f, 2, 8.1f);
+    glTranslatef(-1.29f, 2.0f, 8.1f);
     glRotatef((GLfloat)theta, 1, 0, 0);
+
+    glPushMatrix();
     glScalef(0.0001f, 0.2f, 0.03f);
     drawCube1(0.8f, 0.7f, 0.1f, 0.4f, 0.35f, 0.05f);
     glPopMatrix();
 
     glPushMatrix();
-    glTranslatef(-0.72f, 1.42f, (GLfloat)z);
+    glTranslatef(-0.02f, 0.6f, 0.05f);
     glScalef(0.035f, 0.035f, 0.035f);
     drawSphere(0.8f, 0.7f, 0.1f, 0.4f, 0.35f, 0.05f, 10);
+    glPopMatrix();
     glPopMatrix();
 }
 
@@ -959,6 +961,7 @@ void drawCeilingFan() {
     glPopMatrix();
     glPopMatrix();
 }
+
 
 // Light Bulb Mesh
 void lightBulb() {
@@ -1121,6 +1124,7 @@ void display(void) {
     lightBulb();
     drawHouseDoor();
 
+
     glDisable(GL_LIGHTING);
     glFlush();
     glutSwapBuffers();
@@ -1179,21 +1183,12 @@ void animate() {
         if (fanRotationAngle > 360.0f) fanRotationAngle -= 360.0f;
     }
 
-    // Pendulum Animation
     if (redFlag == GL_TRUE) {
         theta += 0.5;
-        z -= 0.005;
-        if (theta >= 196 && theta <= 210) y = 1.44;
-        else if (theta >= 180 && theta <= 194) y = 1.42;
-        else if (theta >= 164 && theta <= 178) y = 1.42;
         if (theta >= 210) redFlag = GL_FALSE;
     }
     else {
         theta -= 0.5;
-        z += 0.005;
-        if (theta >= 196 && theta <= 210) y = 1.44;
-        else if (theta >= 180 && theta <= 194) y = 1.42;
-        else if (theta >= 164 && theta <= 178) y = 1.42;
         if (theta <= 150) redFlag = GL_TRUE;
     }
     glutPostRedisplay();
