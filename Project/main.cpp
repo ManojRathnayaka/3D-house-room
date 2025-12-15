@@ -811,7 +811,7 @@ void Clock() {
 
     // pendulum
     glPushMatrix();
-    glTranslatef(-1.29f, 2.0f, 8.1f);
+    glTranslatef(-1.29f, 2.0f, 8.05f);
     glRotatef((GLfloat)theta, 1, 0, 0);
 
     glPushMatrix();
@@ -962,6 +962,35 @@ void drawCeilingFan() {
     glPopMatrix();
 }
 
+void vaseWithFlowers() {
+    glPushMatrix();
+    glTranslatef(5.6f, 0.9f, 4.75f); // On dressing table
+
+    // Vase body (tapered cylinder)
+    glRotatef(-90, 1, 0, 0);
+    setMaterial(0.5f, 0.5f, 1.0f, 0.2f, 0.2f, 0.2f, 80);
+    gluCylinder(quad, 0.08, 0.15, 0.3, 24, 1);
+    gluDisk(quad, 0, 0.08, 24, 1);
+
+    // Flowers (spheres on stems)
+    for (int i = 0; i < 3; i++) {
+        glPushMatrix();
+        glRotatef(i * 40.0f - 20, 0, 0, 1);
+
+        // Stem
+        setMaterial(0.1f, 0.4f, 0.1f, 0.05f, 0.2f, 0.05f);
+        gluCylinder(quad, 0.01, 0.01, 0.5, 8, 1);
+
+        // Flower head
+        glTranslatef(0, 0, 0.5f);
+        float colors[3][3] = { {0.9f,0.2f,0.2f}, {0.9f,0.7f,0.2f}, {0.8f,0.2f,0.8f} };
+        setMaterial(colors[i][0], colors[i][1], colors[i][2],
+            colors[i][0] * 0.5f, colors[i][1] * 0.5f, colors[i][2] * 0.5f);
+        gluSphere(quad, 0.06, 12, 12);
+        glPopMatrix();
+    }
+    glPopMatrix();
+}
 
 // Light Bulb Mesh
 void lightBulb() {
@@ -1123,7 +1152,7 @@ void display(void) {
     drawCeilingFan();
     lightBulb();
     drawHouseDoor();
-
+    vaseWithFlowers();
 
     glDisable(GL_LIGHTING);
     glFlush();
