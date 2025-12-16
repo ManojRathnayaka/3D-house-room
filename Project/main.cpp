@@ -925,7 +925,7 @@ void window() {
 // Stool Object
 void drawWoodenStool() {
     glPushMatrix();
-    glTranslatef(5.0f, -0.2f, 10.0f);
+    glTranslatef(0.0f, -0.2f, 12.0f);
 
     // Seat
     glPushMatrix();
@@ -968,12 +968,12 @@ void drawCeilingFan() {
     glTranslatef(centerX, -0.2f, centerZ);
     glRotatef(90.0f, 1.0f, 0.0f, 0.0f);
     setMaterial(0.7f, 0.7f, 0.7f, 0.35f, 0.35f, 0.35f);
-    gluCylinder(quad, 0.03, 0.03, 0.8, 32, 32);
+    gluCylinder(quad, 0.03, 0.03, 0.6, 32, 32);
     glPopMatrix();
 
     // Motor
     glPushMatrix();
-    glTranslatef(centerX, -1.0f, centerZ);
+    glTranslatef(centerX, -0.80f, centerZ);
     setMaterial(0.9f, 0.9f, 0.9f, 0.45f, 0.45f, 0.45f);
     glScalef(1.0f, 0.6f, 1.0f);
     gluSphere(quad, 0.25, 32, 32);
@@ -981,7 +981,7 @@ void drawCeilingFan() {
 
     // Blades
     glPushMatrix();
-    glTranslatef(centerX, -1.1f, centerZ);
+    glTranslatef(centerX, -0.80f, centerZ);
     glRotatef(fanRotationAngle, 0.0f, 1.0f, 0.0f);
     setMaterial(0.9f, 0.9f, 0.9f, 0.45f, 0.45f, 0.45f, 50);
 
@@ -1031,8 +1031,20 @@ void vaseWithFlowers() {
 void lightBulb() {
     glPushMatrix();
     glTranslatef(5, 5, 8);
+    // Wire
+    glPushMatrix();
+	glRotatef(90, 1, 0, 0);
+    setMaterial(0.1f, 0.1f, 0.1f, 0.05f, 0.05f, 0.05f, 10.0f);
+    gluCylinder(quad,0.01,0.01,0.8,10,10);
+
+	glTranslatef(0, 0, 0.55);
+    setMaterial(0.85f, 0.82f, 0.75f, 0.5f, 0.5f, 0.45f, 30.0f);
+    gluCylinder(quad, 0.05, 0.5, 0.3,24,24);
+    glPopMatrix();
+
+    glTranslatef(0, -0.8, 0);
     glScalef(0.2f, 0.2f, 0.2f);
-    setMaterial(1.0f, 0.843f, 0.0f, 0.0f, 0.0f, 0.0f, 100.0f);
+    setMaterial(0.9f, 0.9f, 0.9f, 0.2f, 0.2f, 0.2f, 80.0f);
 
     if (switchOne == GL_TRUE) {
         GLfloat mat_emission[] = { 1.0f, 1.0f, 1.0f, 1.0f };
@@ -1062,7 +1074,7 @@ void lightOne() {
     GLfloat light_ambient[] = { 0.5f, 0.5f, 0.5f, 1.0f };
     GLfloat light_diffuse[] = { 1.0f, 1.0f, 1.0f, 1.0f };
     GLfloat light_specular[] = { 1.0f, 1.0f, 1.0f, 1.0f };
-    GLfloat light_position[] = { 5.0f, 5.0f, 8.0f, 1.0f };
+    GLfloat light_position[] = { 5.0f, 4.0f, 8.0f, 1.0f };
 
     glLightfv(GL_LIGHT0, GL_POSITION, light_position);
 
@@ -1082,7 +1094,7 @@ void lightOne() {
 void lampLight() {
     glPushMatrix();
     GLfloat light_ambient[] = { 0.5f, 0.5f, 0.5f, 1.0f };
-    GLfloat light_diffuse[] = { 1.0f, 1.0f, 1.0f, 1.0f };
+    GLfloat light_diffuse[] = { 0.9f, 0.9f, 0.9f, 1.0f };
     GLfloat light_specular[] = { 1.0f, 1.0f, 1.0f, 1.0f };
     GLfloat light_position[] = { 0.7f, 1.5f, 9.0f, 1.0f };
 
