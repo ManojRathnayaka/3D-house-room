@@ -930,7 +930,7 @@ void window() {
 
 void apple() {
     glPushMatrix();
-    glTranslatef(0.5f, 1.41f, 12.0f);
+    glTranslatef(0.5f, 1.42f, 12.0f);
     glScalef(0.2f, 0.2f, 0.2f);
     // 1. THE APPLE BODY (The "Fat Torus" Trick)
     glPushMatrix();
@@ -961,6 +961,50 @@ void apple() {
     glPopMatrix();
 }
 
+void glassBox() {
+    glPushAttrib(GL_ALL_ATTRIB_BITS);
+    glEnable(GL_BLEND);
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+    glEnable(GL_STENCIL_TEST);
+    glClear(GL_STENCIL_BUFFER_BIT);
+    glPushMatrix();
+    glTranslatef(0.5f, 1.5f, 12.0f);
+    glScalef(0.2f, 0.2f, 0.2f);
+
+    // write '1' to the stencil buffer where the sphere exist
+    // do NOT draw to the screen (Color/Depth masks false).
+    glStencilFunc(GL_ALWAYS, 1, 0xFF);
+    glStencilOp(GL_KEEP, GL_KEEP, GL_REPLACE);
+    glColorMask(GL_FALSE, GL_FALSE, GL_FALSE, GL_FALSE);
+    glDepthMask(GL_FALSE);
+    glDisable(GL_LIGHTING);
+    gluSphere(quad, 1.1, 32, 32);
+
+    // draw only where the stencil is NOT 1 (i.e., outside the sphere).
+    glStencilFunc(GL_NOTEQUAL, 1, 0xFF);
+    glStencilOp(GL_KEEP, GL_KEEP, GL_KEEP);
+    glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
+    glDepthMask(GL_FALSE);
+    glEnable(GL_LIGHTING);
+
+    GLfloat glassAmb[] = { 0.6f, 0.7f, 0.8f, 0.3f };
+    GLfloat glassDif[] = { 0.6f, 0.7f, 0.8f, 0.3f };
+    GLfloat glassSpec[] = { 1.0f, 1.0f, 1.0f, 1.0f };
+    GLfloat glassShine[] = { 100.0f };
+    glMaterialfv(GL_FRONT, GL_AMBIENT, glassAmb);
+    glMaterialfv(GL_FRONT, GL_DIFFUSE, glassDif);
+    glMaterialfv(GL_FRONT, GL_SPECULAR, glassSpec);
+    glMaterialfv(GL_FRONT, GL_SHININESS, glassShine);
+
+    glPushMatrix();
+    glTranslatef(0.0f, 0.2f, 0.0f);
+    glutSolidCube(2.5);
+    glPopMatrix();
+
+    glPopMatrix();
+    glPopAttrib();
+}
+
 // Round Table Object
 void table() {
     glPushMatrix();
@@ -983,6 +1027,80 @@ void table() {
     glScalef(1.2f, 0.05f, 1.2f);
     gluSphere(quad, 1.0, 32, 32);
     glPopMatrix();
+    glPopMatrix();
+}
+
+// Chair Object
+void chair() {
+    glPushMatrix();
+    glTranslatef(0.5f, -0.2f, 13.5f);
+    glRotatef(180.0f, 0.0f, 1.0f, 0.0f);
+
+    // --- WOOD PARTS (Legs & Posts) ---
+    setMaterial(0.4f, 0.2f, 0.1f, 0.2f, 0.1f, 0.05f, 30);
+
+    // Front Left Leg
+    glPushMatrix();
+    glTranslatef(0.35f, 0.0f, 0.35f);
+    glRotatef(-90.0f, 1.0f, 0.0f, 0.0f);
+    gluCylinder(quad, 0.05f, 0.035f, 0.8f, 16, 1);
+    glPopMatrix();
+
+    // Front Right Leg
+    glPushMatrix();
+    glTranslatef(-0.35f, 0.0f, 0.35f);
+    glRotatef(-90.0f, 1.0f, 0.0f, 0.0f);
+    gluCylinder(quad, 0.05f, 0.035f, 0.8f, 16, 1);
+    glPopMatrix();
+
+    // Back Left Leg
+    glPushMatrix();
+    glTranslatef(0.35f, 0.0f, -0.35f);
+    glRotatef(-90.0f, 1.0f, 0.0f, 0.0f);
+    gluCylinder(quad, 0.05f, 0.035f, 0.8f, 16, 1);
+    glPopMatrix();
+
+    // Back Right Leg
+    glPushMatrix();
+    glTranslatef(-0.35f, 0.0f, -0.35f);
+    glRotatef(-90.0f, 1.0f, 0.0f, 0.0f);
+    gluCylinder(quad, 0.05f, 0.035f, 0.8f, 16, 1);
+    glPopMatrix();
+
+    // Left Back Post
+    glPushMatrix();
+    glTranslatef(-0.3f, 0.8f, -0.25f);
+    glRotatef(-90.0f, 1.0f, 0.0f, 0.0f);
+    gluCylinder(quad, 0.04f, 0.04f, 1.0f, 16, 1);
+    glPopMatrix();
+
+    // Right Back Post
+    glPushMatrix();
+    glTranslatef(0.3f, 0.8f, -0.25f);
+    glRotatef(-90.0f, 1.0f, 0.0f, 0.0f);
+    gluCylinder(quad, 0.04f, 0.04f, 1.0f, 16, 1);
+    glPopMatrix();
+
+    // --- CUSHION PARTS (Seat & Backrest) ---
+    setMaterial(0.2f, 0.25f, 0.35f, 0.1f, 0.1f, 0.15f, 50);
+
+    // Seat Cushion (Cylinder + Top/Bottom Disks)
+    glPushMatrix();
+    glTranslatef(0.0f, 0.8f, 0.0f);
+    glRotatef(-90.0f, 1.0f, 0.0f, 0.0f);
+    gluCylinder(quad, 0.5, 0.5, 0.1, 32, 1);  // Rim
+    gluDisk(quad, 0.0, 0.5, 32, 1);           // Bottom Cap
+    glTranslatef(0.0f, 0.0f, 0.1f);           // Move to top
+    gluDisk(quad, 0.0, 0.5, 32, 1);           // Top Cap
+    glPopMatrix();
+
+    // Backrest Cushion
+    glPushMatrix();
+    glTranslatef(0.0f, 1.8f, -0.25f);
+    glScalef(1.0f, 0.5f, 0.2f);
+    gluSphere(quad, 0.5, 32, 32);
+    glPopMatrix();
+
     glPopMatrix();
 }
 
@@ -1333,7 +1451,8 @@ void display(void) {
     vaseWithFlowers();
     apple();
     christmasTree();
-
+    glassBox();
+    chair();
     glDisable(GL_LIGHTING);
     glFlush();
     glutSwapBuffers();
@@ -1460,6 +1579,7 @@ int main(int argc, char** argv) {
     glShadeModel(GL_SMOOTH);
     glEnable(GL_DEPTH_TEST);
     glEnable(GL_NORMALIZE);
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
     loadAllTextures();
 
