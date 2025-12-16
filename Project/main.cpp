@@ -5,30 +5,31 @@
 #include <glut.h>
 #include <SOIL2.h>
 
-// Camera Variables
+// --- Variables & State ---
+
+// Camera
 bool mouseActive = true;
 int lastMouseX = 0, lastMouseY = 0;
 float yaw = 180.0f;
 float pitch = 0.0f;
 float cameraSpeed = 0.05f;
 
-// Input State
+// Input
 bool keys[256] = { false };
 
-// Scene Variables
+// Scene
 GLboolean redFlag = GL_TRUE;
 bool switchOne = false, switchLamp = false;
 double windowHeight = 680, windowWidth = 1340;
 double eyeX = 2.8, eyeY = 2.0, eyeZ = 20.0, refX = 0, refY = 0, refZ = 0;
 double theta = 180.0, z = 8.05;
 
-// Door Animation Variables
+// Animations
 float doorAngle = 0.0f;
 bool doorOpening = false;
 bool doorClosing = false;
 const float doorSpeed = 2.0f;
 
-// Fan Animation Variables
 float fanRotationAngle = 0.0f;
 const float fanSpeed = 2.5f;
 bool isFanOn = false;
@@ -37,25 +38,20 @@ bool curtainOpen = false;
 bool curtainOpening = false;
 bool curtainClosing = false;
 
-// Scale: 1.0f = Fully Closed (flat), 0.1f = Fully Open (shrunk/bunched up)
+// Scale: 1.0f = Fully Closed, 0.1f = Fully Open
 float curtainScale = 1.0f;
-const float curtainSpeed = 0.03f; // Speed of shrinking
+const float curtainSpeed = 0.03f;
 
-// sunIntensity ranges from approx 0.2 (closed) to 1.0 (open)
+// Sun intensity ranges from approx 0.2 (closed) to 1.0 (open)
 float sunIntensity = 0.2f;
-
 float treeTime = 0.0f;
 
 // Texture IDs
-GLuint woodTexture;
-GLuint posterTexture;
-GLuint carpetTexture;
-GLuint floorTexture;
-GLuint ceilingTexture;
-
+GLuint woodTexture, posterTexture, carpetTexture, floorTexture, ceilingTexture;
 GLUquadric* quad = NULL;
 
-// Cube Vertices
+// --- Geometry Data ---
+
 static GLfloat v_cube[8][3] = {
     {0.0f, 0.0f, 0.0f}, {0.0f, 0.0f, 3.0f}, {3.0f, 0.0f, 3.0f}, {3.0f, 0.0f, 0.0f},
     {0.0f, 3.0f, 0.0f}, {0.0f, 3.0f, 3.0f}, {3.0f, 3.0f, 3.0f}, {3.0f, 3.0f, 0.0f}
@@ -66,7 +62,18 @@ static GLubyte quadIndices[6][4] = {
     {0, 4, 7, 3}, {2, 3, 7, 6}, {1, 5, 4, 0}
 };
 
-// Normal Vector Helper
+static GLfloat v_trapezoid[8][3] = {
+    {0.0f, 0.0f, 0.0f}, {0.0f, 0.0f, 3.0f}, {3.0f, 0.0f, 3.0f}, {3.0f, 0.0f, 0.0f},
+    {0.5f, 3.0f, 0.5f}, {0.5f, 3.0f, 2.5f}, {2.5f, 3.0f, 2.5f}, {2.5f, 3.0f, 0.5f}
+};
+
+static GLubyte TquadIndices[6][4] = {
+    {0, 1, 2, 3}, {4, 5, 6, 7}, {5, 1, 2, 6},
+    {0, 4, 7, 3}, {2, 3, 7, 6}, {1, 5, 4, 0}
+};
+
+// --- Helper Functions ---
+
 static void getNormal3p(GLfloat x1, GLfloat y1, GLfloat z1, GLfloat x2, GLfloat y2, GLfloat z2, GLfloat x3, GLfloat y3, GLfloat z3) {
     GLfloat Ux, Uy, Uz, Vx, Vy, Vz, Nx, Ny, Nz;
     Ux = x2 - x1; Uy = y2 - y1; Uz = z2 - z1;
@@ -77,7 +84,6 @@ static void getNormal3p(GLfloat x1, GLfloat y1, GLfloat z1, GLfloat x2, GLfloat 
     glNormal3f(Nx, Ny, Nz);
 }
 
-// Camera Update Logic
 void updateCamera() {
     float radYaw = yaw * M_PI / 180.0f;
     float radPitch = pitch * M_PI / 180.0f;
@@ -86,7 +92,6 @@ void updateCamera() {
     refZ = eyeZ + cos(radPitch) * cos(radYaw);
 }
 
-// Material Helper
 void setMaterial(GLfloat difX, GLfloat difY, GLfloat difZ, GLfloat ambX, GLfloat ambY, GLfloat ambZ, GLfloat shine = 50) {
     GLfloat mat_ambient[] = { ambX, ambY, ambZ, 1.0f };
     GLfloat mat_diffuse[] = { difX, difY, difZ, 1.0f };
@@ -101,7 +106,8 @@ void setMaterial(GLfloat difX, GLfloat difY, GLfloat difZ, GLfloat ambX, GLfloat
     glMaterialfv(GL_FRONT, GL_EMISSION, no_mat);
 }
 
-// Basic Cube Drawer
+// --- Primitive Drawers ---
+
 void drawCube1(GLfloat difX, GLfloat difY, GLfloat difZ, GLfloat ambX = 0, GLfloat ambY = 0, GLfloat ambZ = 0, GLfloat shine = 50, GLuint textureID = 0) {
     if (textureID != 0) {
         setMaterial(1.0f, 1.0f, 1.0f, 0.8f, 0.8f, 0.8f, shine);
@@ -128,18 +134,6 @@ void drawCube1(GLfloat difX, GLfloat difY, GLfloat difZ, GLfloat ambX = 0, GLflo
     }
 }
 
-// Trapezoid Data
-static GLfloat v_trapezoid[8][3] = {
-    {0.0f, 0.0f, 0.0f}, {0.0f, 0.0f, 3.0f}, {3.0f, 0.0f, 3.0f}, {3.0f, 0.0f, 0.0f},
-    {0.5f, 3.0f, 0.5f}, {0.5f, 3.0f, 2.5f}, {2.5f, 3.0f, 2.5f}, {2.5f, 3.0f, 0.5f}
-};
-
-static GLubyte TquadIndices[6][4] = {
-    {0, 1, 2, 3}, {4, 5, 6, 7}, {5, 1, 2, 6},
-    {0, 4, 7, 3}, {2, 3, 7, 6}, {1, 5, 4, 0}
-};
-
-// Trapezoid Drawer
 void drawTrapezoid(GLfloat difX, GLfloat difY, GLfloat difZ, GLfloat ambX, GLfloat ambY, GLfloat ambZ, GLfloat shine = 50) {
     setMaterial(difX, difY, difZ, ambX, ambY, ambZ, shine);
     if (switchLamp == GL_TRUE) {
@@ -160,7 +154,6 @@ void drawTrapezoid(GLfloat difX, GLfloat difY, GLfloat difZ, GLfloat ambX, GLflo
     glEnd();
 }
 
-// Polygon Helper
 void polygon(GLfloat difX, GLfloat difY, GLfloat difZ, GLfloat ambX, GLfloat ambY, GLfloat ambZ, GLfloat shine) {
     setMaterial(difX, difY, difZ, ambX, ambY, ambZ, shine);
     glBegin(GL_POLYGON);
@@ -170,7 +163,6 @@ void polygon(GLfloat difX, GLfloat difY, GLfloat difZ, GLfloat ambX, GLfloat amb
     glEnd();
 }
 
-// Polygon Outline Helper
 void polygonLine(GLfloat difX, GLfloat difY, GLfloat difZ, GLfloat ambX, GLfloat ambY, GLfloat ambZ, GLfloat shine) {
     setMaterial(difX, difY, difZ, ambX, ambY, ambZ, shine);
     glBegin(GL_LINE_STRIP);
@@ -180,13 +172,11 @@ void polygonLine(GLfloat difX, GLfloat difY, GLfloat difZ, GLfloat ambX, GLfloat
     glEnd();
 }
 
-// Sphere Drawer
 void drawSphere(GLfloat difX, GLfloat difY, GLfloat difZ, GLfloat ambX, GLfloat ambY, GLfloat ambZ, GLfloat shine = 90) {
     setMaterial(difX, difY, difZ, ambX, ambY, ambZ, shine);
     glutSolidSphere(3.0, 20, 16);
 }
 
-// Texture Loading
 void loadAllTextures() {
     woodTexture = SOIL_load_OGL_texture("wood.jpg", SOIL_LOAD_AUTO, SOIL_CREATE_NEW_ID, SOIL_FLAG_MIPMAPS | SOIL_FLAG_INVERT_Y);
     if (!woodTexture) printf("Wood texture loading failed: %s\n", SOIL_last_result());
@@ -204,7 +194,6 @@ void loadAllTextures() {
     if (!ceilingTexture) printf("Ceiling texture loading failed: %s\n", SOIL_last_result());
 }
 
-// Custom Textured Cube Drawer
 void drawTexturedCube(GLfloat width, GLfloat height, GLfloat depth, GLfloat difX, GLfloat difY, GLfloat difZ, GLfloat ambX = 0.2f, GLfloat ambY = 0.1f, GLfloat ambZ = 0.05f, GLfloat shine = 30) {
     setMaterial(difX, difY, difZ, ambX, ambY, ambZ, shine);
     glEnable(GL_TEXTURE_2D);
@@ -257,7 +246,8 @@ void drawTexturedCube(GLfloat width, GLfloat height, GLfloat depth, GLfloat difX
     glDisable(GL_TEXTURE_2D);
 }
 
-// Door Object
+// --- Scene Objects ---
+
 void drawHouseDoor() {
     glPushMatrix();
     glTranslatef(2.0f, -1.0f, 14.8f);
@@ -298,7 +288,6 @@ void drawHouseDoor() {
     glPopMatrix();
 }
 
-// Door Animation Logic
 void updateDoorAnimation()
 {
     if (doorOpening && doorAngle < 90.0f) {
@@ -319,7 +308,6 @@ void updateDoorAnimation()
     }
 }
 
-// Cupboard Object
 void cupboard() {
     glPushMatrix();
     glTranslatef(-1.0f, 0.0f, -1.0f);
@@ -408,7 +396,6 @@ void cupboard() {
     glPopMatrix();
 }
 
-// Room Structure
 void room() {
     // Back Wall
     glPushMatrix();
@@ -465,7 +452,6 @@ void room() {
     glPopMatrix();
 }
 
-// Bed Object
 void bed() {
     // Headboard
     glPushMatrix();
@@ -511,7 +497,6 @@ void bed() {
     glPopMatrix();
 }
 
-// Bedside Drawer Object
 void bedsideDrawer() {
     // Body
     glPushMatrix();
@@ -535,7 +520,6 @@ void bedsideDrawer() {
     glPopMatrix();
 }
 
-// Lamp Object
 void lamp() {
     // Base
     glPushMatrix();
@@ -559,7 +543,6 @@ void lamp() {
     glPopMatrix();
 }
 
-// Poster Object
 void drawPoster() {
     glPushMatrix();
     glTranslatef(-1.49f, 1.5f, 11.0f);
@@ -614,7 +597,6 @@ void drawPoster() {
     glPopMatrix();
 }
 
-// Carpet Object
 void drawCarpet() {
     glPushMatrix();
     glTranslatef(3.0f, -0.199f, 7.0f);
@@ -637,7 +619,6 @@ void drawCarpet() {
     glPopMatrix();
 }
 
-// Wardrobe Object
 void wardrobe() {
     // Body
     glPushMatrix();
@@ -663,7 +644,6 @@ void wardrobe() {
     }
 }
 
-// Dressing Table Object
 void dressingTable() {
     glPushMatrix();
     glTranslatef(-0.5f, 0.0f, -0.2f);
@@ -826,7 +806,7 @@ void Clock() {
     drawCube1(0, 0, 0, 0, 0, 0);
     glPopMatrix();
 
-    // pendulum
+    // Pendulum
     glPushMatrix();
     glTranslatef(-1.29f, 2.0f, 8.05f);
     glRotatef((GLfloat)theta, 1, 0, 0);
@@ -865,7 +845,7 @@ void window() {
 
     glBegin(GL_QUADS);
     glNormal3f(0.0f, 0.0f, 1.0f);
-    glVertex3f(-winWidth / 2, -winHeight / 2, -0.02f); // Fixed Z
+    glVertex3f(-winWidth / 2, -winHeight / 2, -0.02f);
     glVertex3f(winWidth / 2, -winHeight / 2, -0.02f);
     glVertex3f(winWidth / 2, winHeight / 2, -0.02f);
     glVertex3f(-winWidth / 2, winHeight / 2, -0.02f);
@@ -891,7 +871,7 @@ void window() {
     glPushMatrix(); glScalef(0.1f, winHeight, 0.05f); glutSolidCube(1.0); glPopMatrix();
     glPushMatrix(); glScalef(winWidth, 0.1f, 0.05f); glutSolidCube(1.0); glPopMatrix();
 
-    glPopMatrix(); // End Frame Shift
+    glPopMatrix();
 
     // Curtains
     setMaterial(0.6f, 0.1f, 0.1f, 0.3f, 0.05f, 0.05f, 10);
@@ -932,30 +912,26 @@ void apple() {
     glPushMatrix();
     glTranslatef(0.5f, 1.42f, 12.0f);
     glScalef(0.2f, 0.2f, 0.2f);
-    // 1. THE APPLE BODY (The "Fat Torus" Trick)
+    // 1. Apple Body (Using Torus)
     glPushMatrix();
-    // Red, slightly shiny material
     setMaterial(0.9f, 0.0f, 0.0f, 0.4f, 0.0f, 0.0f, 80);
-    // Rotate so the "dimples" are at top and bottom
     glRotatef(-90, 1.0, 0.0, 0.0);
-    // innerRadius (0.55) > outerRadius (0.35) creates the apple shape
     glutSolidTorus(0.55, 0.35, 30, 30);
     glPopMatrix();
-    // 2. THE STEM
+    // 2. Stem
     glPushMatrix();
-    setMaterial(0.4f, 0.25f, 0.1f, 0.2f, 0.1f, 0.05f, 10); // Brown
-    glTranslatef(0.0, 0.5, 0.0); // Move to top dimple
-    glRotatef(-90, 1.0, 0.0, 0.0); // Stand upright
-    // Use your existing global 'quad' for the cylinder
+    setMaterial(0.4f, 0.25f, 0.1f, 0.2f, 0.1f, 0.05f, 10);
+    glTranslatef(0.0, 0.5, 0.0);
+    glRotatef(-90, 1.0, 0.0, 0.0);
     gluCylinder(quad, 0.05, 0.04, 0.5, 10, 10);
     glPopMatrix();
-    // 3. THE LEAF
+    // 3. Leaf
     glPushMatrix();
-    setMaterial(0.2f, 0.8f, 0.2f, 0.1f, 0.4f, 0.1f, 30); // Green
-    glTranslatef(0.1, 0.9, 0.0); // Position on stem
-    glRotatef(45, 0.0, 0.0, 1.0); // Tilt
-    glRotatef(45, 0.0, 1.0, 0.0); // Rotate to face outward
-    glScalef(1.0, 0.5, 0.1);      // Flatten sphere into leaf
+    setMaterial(0.2f, 0.8f, 0.2f, 0.1f, 0.4f, 0.1f, 30);
+    glTranslatef(0.1, 0.9, 0.0);
+    glRotatef(45, 0.0, 0.0, 1.0);
+    glRotatef(45, 0.0, 1.0, 0.0);
+    glScalef(1.0, 0.5, 0.1);
     glutSolidSphere(0.25, 20, 20);
     glPopMatrix();
     glPopMatrix();
@@ -971,8 +947,8 @@ void glassBox() {
     glTranslatef(0.5f, 1.5f, 12.0f);
     glScalef(0.2f, 0.2f, 0.2f);
 
-    // write '1' to the stencil buffer where the sphere exist
-    // do NOT draw to the screen (Color/Depth masks false).
+    // Write '1' to the stencil buffer where the sphere exists.
+    // Do NOT draw to the screen (Color/Depth masks false).
     glStencilFunc(GL_ALWAYS, 1, 0xFF);
     glStencilOp(GL_KEEP, GL_KEEP, GL_REPLACE);
     glColorMask(GL_FALSE, GL_FALSE, GL_FALSE, GL_FALSE);
@@ -980,7 +956,7 @@ void glassBox() {
     glDisable(GL_LIGHTING);
     gluSphere(quad, 1.1, 32, 32);
 
-    // draw only where the stencil is NOT 1 (i.e., outside the sphere).
+    // Draw only where the stencil is NOT 1 (i.e., outside the sphere).
     glStencilFunc(GL_NOTEQUAL, 1, 0xFF);
     glStencilOp(GL_KEEP, GL_KEEP, GL_KEEP);
     glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
@@ -1005,7 +981,6 @@ void glassBox() {
     glPopAttrib();
 }
 
-// Round Table Object
 void table() {
     glPushMatrix();
     glTranslatef(0.5f, -0.2f, 12.0f);
@@ -1030,13 +1005,12 @@ void table() {
     glPopMatrix();
 }
 
-// Chair Object
 void chair() {
     glPushMatrix();
     glTranslatef(0.5f, -0.2f, 13.5f);
     glRotatef(180.0f, 0.0f, 1.0f, 0.0f);
 
-    // --- WOOD PARTS (Legs & Posts) ---
+    // --- Wood Parts ---
     setMaterial(0.4f, 0.2f, 0.1f, 0.2f, 0.1f, 0.05f, 30);
 
     // Front Left Leg
@@ -1081,17 +1055,17 @@ void chair() {
     gluCylinder(quad, 0.04f, 0.04f, 1.0f, 16, 1);
     glPopMatrix();
 
-    // --- CUSHION PARTS (Seat & Backrest) ---
+    // --- Cushion Parts ---
     setMaterial(0.2f, 0.25f, 0.35f, 0.1f, 0.1f, 0.15f, 50);
 
-    // Seat Cushion (Cylinder + Top/Bottom Disks)
+    // Seat Cushion
     glPushMatrix();
     glTranslatef(0.0f, 0.8f, 0.0f);
     glRotatef(-90.0f, 1.0f, 0.0f, 0.0f);
-    gluCylinder(quad, 0.5, 0.5, 0.1, 32, 1);  // Rim
-    gluDisk(quad, 0.0, 0.5, 32, 1);           // Bottom Cap
-    glTranslatef(0.0f, 0.0f, 0.1f);           // Move to top
-    gluDisk(quad, 0.0, 0.5, 32, 1);           // Top Cap
+    gluCylinder(quad, 0.5, 0.5, 0.1, 32, 1);
+    gluDisk(quad, 0.0, 0.5, 32, 1);
+    glTranslatef(0.0f, 0.0f, 0.1f);
+    gluDisk(quad, 0.0, 0.5, 32, 1);
     glPopMatrix();
 
     // Backrest Cushion
@@ -1104,7 +1078,6 @@ void chair() {
     glPopMatrix();
 }
 
-// Ceiling Fan Object
 void ceilingFan() {
     const float centerX = 0.3f;
     const float centerZ = 0.3f;
@@ -1157,15 +1130,15 @@ void ceilingFan() {
 
 void vaseWithFlowers() {
     glPushMatrix();
-    glTranslatef(5.6f, 0.9f, 4.75f); // On dressing table
+    glTranslatef(5.6f, 0.9f, 4.75f);
 
-    // Vase body (tapered cylinder)
+    // Vase body 
     glRotatef(-90, 1, 0, 0);
     setMaterial(0.5f, 0.5f, 1.0f, 0.2f, 0.2f, 0.2f, 80);
     gluCylinder(quad, 0.08, 0.15, 0.3, 24, 1);
     gluDisk(quad, 0, 0.08, 24, 1);
 
-    // Flowers (spheres on stems)
+    // Flowers
     for (int i = 0; i < 3; i++) {
         glPushMatrix();
         glRotatef(i * 40.0f - 20, 0, 0, 1);
@@ -1185,19 +1158,18 @@ void vaseWithFlowers() {
     glPopMatrix();
 }
 
-// Light Bulb Mesh
 void lightBulb() {
     glPushMatrix();
     glTranslatef(5, 5, 8);
     // Wire
     glPushMatrix();
-	glRotatef(90, 1, 0, 0);
+    glRotatef(90, 1, 0, 0);
     setMaterial(0.1f, 0.1f, 0.1f, 0.05f, 0.05f, 0.05f, 10.0f);
-    gluCylinder(quad,0.01,0.01,0.8,10,10);
+    gluCylinder(quad, 0.01, 0.01, 0.8, 10, 10);
 
-	glTranslatef(0, 0, 0.55);
+    glTranslatef(0, 0, 0.55);
     setMaterial(0.85f, 0.82f, 0.75f, 0.5f, 0.5f, 0.45f, 30.0f);
-    gluCylinder(quad, 0.05, 0.5, 0.3,24,24);
+    gluCylinder(quad, 0.05, 0.5, 0.3, 24, 24);
     glPopMatrix();
 
     glTranslatef(0, -0.8, 0);
@@ -1214,15 +1186,16 @@ void lightBulb() {
 
 void christmasTree() {
     glPushMatrix();
-    // Position the tree
     glTranslatef(6.5f, -0.2f, 13.0f);
-    // --- 1. Trunk ---
+
+    // 1. Trunk
     glPushMatrix();
     glRotatef(-90, 1, 0, 0);
     setMaterial(0.4f, 0.2f, 0.1f, 0.2f, 0.1f, 0.1f);
     gluCylinder(quad, 0.15, 0.15, 0.8, 10, 10);
     glPopMatrix();
-    // --- 2. Leaves ---
+
+    // 2. Leaves
     float leafData[3][3] = {
         {1.5f, 1.2f, 0.7f},
         {1.3f, 0.9f, 1.5f},
@@ -1236,7 +1209,8 @@ void christmasTree() {
         glutSolidCone(leafData[i][1], leafData[i][0], 16, 16);
         glPopMatrix();
     }
-    // --- 3. Star ---
+
+    // 3. Star
     glPushMatrix();
     glTranslatef(0.0f, 3.3f, 0.0f);
     setMaterial(1.0f, 1.0f, 0.0f, 0.5f, 0.5f, 0.0f, 100);
@@ -1246,14 +1220,14 @@ void christmasTree() {
     float noEmission[] = { 0.0f, 0.0f, 0.0f, 1.0f };
     glMaterialfv(GL_FRONT, GL_EMISSION, noEmission);
     glPopMatrix();
-    // --- 4. Discrete Blinking Bulbs ---
-    // Define the discrete color palette
+
+    // 4. Discrete Blinking Bulbs
     float colors[6][3] = {
         {1.0f, 0.0f, 0.0f}, // Red
         {0.0f, 1.0f, 0.0f}, // Green
         {0.0f, 0.0f, 1.0f}, // Blue
         {1.0f, 1.0f, 0.0f}, // Yellow
-		{1.0f, 1.0f, 1.0f}, // White
+        {1.0f, 1.0f, 1.0f}, // White
         {1.0f, 0.4f, 0.7f}  // Pink
     };
     int numColors = 6;
@@ -1269,12 +1243,14 @@ void christmasTree() {
             glPushMatrix();
             glRotatef(j * (360.0f / count), 0, 1, 0);
             glTranslatef(bulbData[i][1], bulbData[i][0], 0.0f);
+
             // Create a unique number for this specific bulb
             int uniqueOffset = i * 5 + j;
             int colorIndex = (int)(treeTime * 0.3f + uniqueOffset) % numColors;
             float r = colors[colorIndex][0];
             float g = colors[colorIndex][1];
             float b = colors[colorIndex][2];
+
             // Set material with emission so they glow in the dark
             setMaterial(r, g, b, r * 0.5f, g * 0.5f, b * 0.5f, 50);
             float bulbEmission[] = { r, g, b, 1.0f };
@@ -1287,7 +1263,8 @@ void christmasTree() {
     glPopMatrix();
 }
 
-// Main Light Logic
+// --- Lighting & Logic ---
+
 void lightOne() {
     glPushMatrix();
     GLfloat light_ambient[] = { 0.5f, 0.5f, 0.5f, 1.0f };
@@ -1309,7 +1286,6 @@ void lightOne() {
     glPopMatrix();
 }
 
-// Lamp Light Logic
 void lampLight() {
     glPushMatrix();
     GLfloat light_ambient[] = { 0.5f, 0.5f, 0.5f, 1.0f };
@@ -1340,7 +1316,6 @@ void sunLight() {
     GLfloat localIntensity = sunIntensity;
     if (localIntensity < 0.01f) localIntensity = 0.0f;
 
-    // 3. Colors
     // Ambient is very low to allow for total darkness
     GLfloat light_ambient[] = { localIntensity * 0.1f, localIntensity * 0.1f, localIntensity * 0.1f, 1.0f };
 
@@ -1353,7 +1328,6 @@ void sunLight() {
     glLightfv(GL_LIGHT1, GL_DIFFUSE, light_diffuse);
     glLightfv(GL_LIGHT1, GL_SPECULAR, light_specular);
 
-    // Turn off light 1 entirely if intensity is 0 to save processing/prevent artifacts
     if (localIntensity > 0.0f) {
         glEnable(GL_LIGHT1);
     }
@@ -1363,7 +1337,8 @@ void sunLight() {
     glPopMatrix();
 }
 
-// Camera Movement Logic
+// --- Movement & Control ---
+
 void processMovement() {
     float radYaw = yaw * M_PI / 180.0f;
     if (keys['w'] || keys['W']) {
@@ -1391,7 +1366,6 @@ void processMovement() {
     updateCamera();
 }
 
-// Mouse Controls
 void mouseMotion(int x, int y) {
     if (!mouseActive) return;
     int deltaX = x - lastMouseX;
@@ -1418,7 +1392,6 @@ void mousePassiveMotion(int x, int y) {
     mouseMotion(x, y);
 }
 
-// Main Display Loop
 void display(void) {
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
     glMatrixMode(GL_PROJECTION);
@@ -1458,7 +1431,6 @@ void display(void) {
     glutSwapBuffers();
 }
 
-// Keyboard Controls
 void myKeyboardFunc(unsigned char key, int x, int y) {
     keys[key] = true;
     switch (key) {
@@ -1516,7 +1488,7 @@ void animate() {
     // Curtain Scaling Logic
     if (curtainOpening) {
         curtainScale -= curtainSpeed;
-        if (curtainScale <= 0.15f) { // Stop when bunched up (0.15 width)
+        if (curtainScale <= 0.15f) { // Stop when bunched up
             curtainScale = 0.15f;
             curtainOpening = false;
             curtainOpen = true;
@@ -1524,14 +1496,14 @@ void animate() {
     }
     else if (curtainClosing) {
         curtainScale += curtainSpeed;
-        if (curtainScale >= 1.0f) { // Stop when fully flat (1.0 width)
+        if (curtainScale >= 1.0f) { // Stop when fully flat
             curtainScale = 1.0f;
             curtainClosing = false;
             curtainOpen = false;
         }
     }
-    float openFactor = (1.0f - curtainScale) / (1.0f - 0.15f); // Normalized 0.0 to 1.0
-    if (openFactor < 0.0f) openFactor = 0.0f; // Clamp to 0
+    float openFactor = (1.0f - curtainScale) / (1.0f - 0.15f);
+    if (openFactor < 0.0f) openFactor = 0.0f;
     // Max intensity 1.3 for a bright day
     sunIntensity = openFactor * 1.3f;
     if (isFanOn) {
@@ -1551,7 +1523,6 @@ void animate() {
     glutPostRedisplay();
 }
 
-// Reshape Handler
 void fullScreen(int w, int h) {
     windowWidth = w;
     windowHeight = h;
@@ -1564,7 +1535,6 @@ void fullScreen(int w, int h) {
     glMatrixMode(GL_MODELVIEW);
 }
 
-// Main
 int main(int argc, char** argv) {
     glutInit(&argc, argv);
     glutInitDisplayMode(GLUT_DOUBLE | GLUT_RGB | GLUT_DEPTH | GLUT_STENCIL);
