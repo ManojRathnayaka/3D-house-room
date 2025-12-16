@@ -49,6 +49,7 @@ GLuint woodTexture;
 GLuint posterTexture;
 GLuint carpetTexture;
 GLuint floorTexture;
+GLuint ceilingTexture;
 
 GLUquadric* quad = NULL;
 
@@ -196,6 +197,9 @@ void loadAllTextures() {
 
     posterTexture = SOIL_load_OGL_texture("image.jpg", SOIL_LOAD_AUTO, SOIL_CREATE_NEW_ID, SOIL_FLAG_MIPMAPS | SOIL_FLAG_INVERT_Y);
     if (!posterTexture) printf("Poster texture (image.jpg) loading failed: %s\n", SOIL_last_result());
+
+    ceilingTexture = SOIL_load_OGL_texture("ceiling.jpg", SOIL_LOAD_AUTO, SOIL_CREATE_NEW_ID, SOIL_FLAG_MIPMAPS | SOIL_FLAG_INVERT_Y);
+    if (!ceilingTexture) printf("Ceiling texture loading failed: %s\n", SOIL_last_result());
 }
 
 // Custom Textured Cube Drawer
@@ -429,7 +433,7 @@ void room() {
     glPushMatrix();
     glTranslatef(-2, 5.1f, 0);
     glScalef(5, 0.1f, 7);
-    drawCube1(1.0f, 0.9f, 0.8f, 0.5f, 0.45f, 0.4f);
+    drawCube1(1, 0.8f, 0.7f, 0.5f, 0.4f, 0.35f);
     glPopMatrix();
 
     // Floor
@@ -922,32 +926,66 @@ void window() {
     glPopMatrix();
 }
 
-// Stool Object
-void drawWoodenStool() {
+void apple() {
     glPushMatrix();
-    glTranslatef(0.0f, -0.2f, 12.0f);
-
-    // Seat
+    glTranslatef(0.5f, 1.41f, 12.0f);
+    glScalef(0.2f, 0.2f, 0.2f);
+    // 1. THE APPLE BODY (The "Fat Torus" Trick)
     glPushMatrix();
-    glTranslatef(-0.45f, 0.8f, -0.45f);
-    glScalef(0.3f, 0.05f, 0.3f);
-    drawCube1(1.0f, 1.0f, 1.0f, 0.8f, 0.8f, 0.8f, 30, woodTexture);
+    // Red, slightly shiny material
+    setMaterial(0.9f, 0.0f, 0.0f, 0.4f, 0.0f, 0.0f, 80);
+    // Rotate so the "dimples" are at top and bottom
+    glRotatef(-90, 1.0, 0.0, 0.0);
+    // innerRadius (0.55) > outerRadius (0.35) creates the apple shape
+    glutSolidTorus(0.55, 0.35, 30, 30);
     glPopMatrix();
+    // 2. THE STEM
+    glPushMatrix();
+    setMaterial(0.4f, 0.25f, 0.1f, 0.2f, 0.1f, 0.05f, 10); // Brown
+    glTranslatef(0.0, 0.5, 0.0); // Move to top dimple
+    glRotatef(-90, 1.0, 0.0, 0.0); // Stand upright
+    // Use your existing global 'quad' for the cylinder
+    gluCylinder(quad, 0.05, 0.04, 0.5, 10, 10);
+    glPopMatrix();
+    // 3. THE LEAF
+    glPushMatrix();
+    setMaterial(0.2f, 0.8f, 0.2f, 0.1f, 0.4f, 0.1f, 30); // Green
+    glTranslatef(0.1, 0.9, 0.0); // Position on stem
+    glRotatef(45, 0.0, 0.0, 1.0); // Tilt
+    glRotatef(45, 0.0, 1.0, 0.0); // Rotate to face outward
+    glScalef(1.0, 0.5, 0.1);      // Flatten sphere into leaf
+    glutSolidSphere(0.25, 20, 20);
+    glPopMatrix();
+    glPopMatrix();
+}
 
-    // Legs
-    float legPositions[4][2] = { {-0.4f, -0.4f}, {0.25f, -0.4f}, {-0.4f, 0.25f}, {0.25f, 0.25f} };
-    for (int i = 0; i < 4; i++) {
-        glPushMatrix();
-        glTranslatef(legPositions[i][0], 0.0f, legPositions[i][1]);
-        glScalef(0.05f, 0.28f, 0.05f);
-        drawCube1(1.0f, 1.0f, 1.0f, 0.8f, 0.8f, 0.8f, 30, woodTexture);
-        glPopMatrix();
-    }
+// Round Table Object
+void table() {
+    glPushMatrix();
+    glTranslatef(0.5f, -0.2f, 12.0f);
+    glPushMatrix();
+    glTranslatef(0.0f, 0.05f, 0.0f);
+    setMaterial(0.15f, 0.15f, 0.15f, 0.1f, 0.1f, 0.1f, 30);
+    glScalef(0.6f, 0.05f, 0.6f);
+    glutSolidSphere(1.0, 32, 32);
+    glPopMatrix();
+    glPushMatrix();
+    glTranslatef(0.0f, 0.05f, 0.0f);
+    glRotatef(-90.0f, 1.0f, 0.0f, 0.0f);
+    setMaterial(0.15f, 0.15f, 0.15f, 0.1f, 0.1f, 0.1f, 30);
+    gluCylinder(quad, 0.08, 0.08, 1.4, 32, 1);
+    glPopMatrix();
+    glPushMatrix();
+    glTranslatef(0.0f, 1.45f, 0.0f);
+    setMaterial(0.78f, 0.57f, 0.35f, 0.3f, 0.2f, 0.1f, 10);
+    glScalef(1.2f, 0.05f, 1.2f);
+    gluSphere(quad, 1.0, 32, 32);
+    glPopMatrix();
     glPopMatrix();
 }
 
 // Ceiling Fan Object
-void drawCeilingFan() {
+void ceilingFan() {
     const float centerX = 0.3f;
     const float centerZ = 0.3f;
 
@@ -1225,11 +1263,12 @@ void display(void) {
     dressingTable();
     Clock();
     window();
-    drawWoodenStool();
-    drawCeilingFan();
+    table();
+    ceilingFan();
     lightBulb();
     drawHouseDoor();
     vaseWithFlowers();
+    apple();
 
     glDisable(GL_LIGHTING);
     glFlush();
