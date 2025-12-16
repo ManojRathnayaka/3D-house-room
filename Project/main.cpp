@@ -44,6 +44,8 @@ const float curtainSpeed = 0.03f; // Speed of shrinking
 // sunIntensity ranges from approx 0.2 (closed) to 1.0 (open)
 float sunIntensity = 0.2f;
 
+float treeTime = 0.0f;
+
 // Texture IDs
 GLuint woodTexture;
 GLuint posterTexture;
@@ -1092,17 +1094,78 @@ void lightBulb() {
     glPopMatrix();
 }
 
-void lightBulb3() {
+void christmasTree() {
     glPushMatrix();
-    glTranslatef(0.7f, 1.5f, 9.0f);
-    glScalef(0.2f, 0.2f, 0.2f);
-    setMaterial(1.000f, 0.843f, 0.000f, 0.0f, 0.0f, 0.0f, 100.0f);
-
-    if (switchLamp == GL_TRUE) {
-        GLfloat mat_emission[] = { 1.0f, 1.0f, 1.0f, 1.0f };
-        glMaterialfv(GL_FRONT, GL_EMISSION, mat_emission);
+    // Position the tree
+    glTranslatef(6.5f, -0.2f, 13.0f);
+    // --- 1. Trunk ---
+    glPushMatrix();
+    glRotatef(-90, 1, 0, 0);
+    setMaterial(0.4f, 0.2f, 0.1f, 0.2f, 0.1f, 0.1f);
+    gluCylinder(quad, 0.15, 0.15, 0.8, 10, 10);
+    glPopMatrix();
+    // --- 2. Leaves ---
+    float leafData[3][3] = {
+        {1.5f, 1.2f, 0.7f},
+        {1.3f, 0.9f, 1.5f},
+        {1.0f, 0.6f, 2.3f}
+    };
+    setMaterial(0.1f, 0.6f, 0.1f, 0.05f, 0.3f, 0.05f, 10);
+    for (int i = 0; i < 3; i++) {
+        glPushMatrix();
+        glTranslatef(0.0f, leafData[i][2], 0.0f);
+        glRotatef(-90, 1, 0, 0);
+        glutSolidCone(leafData[i][1], leafData[i][0], 16, 16);
+        glPopMatrix();
     }
-    glutSolidSphere(1.0, 16, 16);
+    // --- 3. Star ---
+    glPushMatrix();
+    glTranslatef(0.0f, 3.3f, 0.0f);
+    setMaterial(1.0f, 1.0f, 0.0f, 0.5f, 0.5f, 0.0f, 100);
+    float starEmission[] = { 0.8f, 0.8f, 0.1f, 1.0f };
+    glMaterialfv(GL_FRONT, GL_EMISSION, starEmission);
+    glutSolidSphere(0.15, 10, 10);
+    float noEmission[] = { 0.0f, 0.0f, 0.0f, 1.0f };
+    glMaterialfv(GL_FRONT, GL_EMISSION, noEmission);
+    glPopMatrix();
+    // --- 4. Discrete Blinking Bulbs ---
+    // Define the discrete color palette
+    float colors[6][3] = {
+        {1.0f, 0.0f, 0.0f}, // Red
+        {0.0f, 1.0f, 0.0f}, // Green
+        {0.0f, 0.0f, 1.0f}, // Blue
+        {1.0f, 1.0f, 0.0f}, // Yellow
+		{1.0f, 1.0f, 1.0f}, // White
+        {1.0f, 0.4f, 0.7f}  // Pink
+    };
+    int numColors = 6;
+    float bulbData[3][3] = {
+        {1.1f, 0.95f, 6},
+        {1.9f, 0.7f, 5},
+        {2.7f, 0.45f, 4}
+    };
+
+    for (int i = 0; i < 3; i++) {
+        int count = (int)bulbData[i][2];
+        for (int j = 0; j < count; j++) {
+            glPushMatrix();
+            glRotatef(j * (360.0f / count), 0, 1, 0);
+            glTranslatef(bulbData[i][1], bulbData[i][0], 0.0f);
+            // Create a unique number for this specific bulb
+            int uniqueOffset = i * 5 + j;
+            int colorIndex = (int)(treeTime * 0.3f + uniqueOffset) % numColors;
+            float r = colors[colorIndex][0];
+            float g = colors[colorIndex][1];
+            float b = colors[colorIndex][2];
+            // Set material with emission so they glow in the dark
+            setMaterial(r, g, b, r * 0.5f, g * 0.5f, b * 0.5f, 50);
+            float bulbEmission[] = { r, g, b, 1.0f };
+            glMaterialfv(GL_FRONT, GL_EMISSION, bulbEmission);
+            glutSolidSphere(0.08, 10, 10);
+            glPopMatrix();
+        }
+    }
+    glMaterialfv(GL_FRONT, GL_EMISSION, noEmission);
     glPopMatrix();
 }
 
@@ -1239,7 +1302,7 @@ void mousePassiveMotion(int x, int y) {
 
 // Main Display Loop
 void display(void) {
-    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
     glMatrixMode(GL_PROJECTION);
     glLoadIdentity();
     gluPerspective(60, (GLfloat)windowWidth / (GLfloat)windowHeight, 1, 100);
@@ -1269,6 +1332,7 @@ void display(void) {
     drawHouseDoor();
     vaseWithFlowers();
     apple();
+    christmasTree();
 
     glDisable(GL_LIGHTING);
     glFlush();
@@ -1364,6 +1428,7 @@ void animate() {
         theta -= 0.5;
         if (theta <= 150) redFlag = GL_TRUE;
     }
+    treeTime += 0.05f;
     glutPostRedisplay();
 }
 
@@ -1383,7 +1448,7 @@ void fullScreen(int w, int h) {
 // Main
 int main(int argc, char** argv) {
     glutInit(&argc, argv);
-    glutInitDisplayMode(GLUT_DOUBLE | GLUT_RGB | GLUT_DEPTH);
+    glutInitDisplayMode(GLUT_DOUBLE | GLUT_RGB | GLUT_DEPTH | GLUT_STENCIL);
     glutInitWindowPosition(10, 10);
     glutInitWindowSize((int)windowWidth, (int)windowHeight);
     glutCreateWindow("3D Bedroom");
