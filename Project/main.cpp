@@ -248,7 +248,7 @@ void drawTexturedCube(GLfloat width, GLfloat height, GLfloat depth, GLfloat difX
 
 // --- Scene Objects ---
 
-void drawHouseDoor() {
+void houseDoor() {
     glPushMatrix();
     glTranslatef(2.0f, -1.0f, 14.8f);
     glScalef(1.1f, 1.1f, 1.0f);
@@ -543,7 +543,7 @@ void lamp() {
     glPopMatrix();
 }
 
-void drawPoster() {
+void poster() {
     glPushMatrix();
     glTranslatef(-1.49f, 1.5f, 11.0f);
 
@@ -597,7 +597,7 @@ void drawPoster() {
     glPopMatrix();
 }
 
-void drawCarpet() {
+void carpet() {
     glPushMatrix();
     glTranslatef(3.0f, -0.199f, 7.0f);
     setMaterial(1.0f, 1.0f, 1.0f, 0.8f, 0.8f, 0.8f, 10.0f);
@@ -712,6 +712,12 @@ void dressingTable() {
     drawCube1(0.690f, 0.878f, 0.902f, 0.345f, 0.439f, 0.451f, 10);
     glPopMatrix();
 
+    glPushMatrix();
+    glTranslatef(7.25f, 0.9f, 4.7f);
+    glScalef(0.1f, 0.48f, 0.0001f);
+    drawCube1(0.690f, 0.878f, 0.902f, 0.345f, 0.439f, 0.451f, 10);
+    glPopMatrix();
+
     // Mirror Borders and Stripes
     glPushMatrix();
     glTranslatef(5.92f, 0.9f, 4.71f);
@@ -735,12 +741,6 @@ void dressingTable() {
     glTranslatef(5.92f, 2.3f, 4.71f);
     glScalef(0.1f, 0.019f, 0.0001f);
     drawCube1(0.2f, 0.1f, 0.1f, 0.1f, 0.05f, 0.05f);
-    glPopMatrix();
-
-    glPushMatrix();
-    glTranslatef(7.25f, 0.9f, 4.7f);
-    glScalef(0.1f, 0.48f, 0.0001f);
-    drawCube1(0.690f, 0.878f, 0.902f, 0.345f, 0.439f, 0.451f, 10);
     glPopMatrix();
 
     glPushMatrix();
@@ -776,7 +776,7 @@ void dressingTable() {
     glPopMatrix();
 }
 
-void Clock() {
+void clock() {
     // Clock Body
     glPushMatrix();
     glTranslatef(-1.49f, 1.8f, 7.87f);
@@ -1407,20 +1407,20 @@ void display(void) {
     sunLight();
 
     room();
-    drawCarpet();
+    carpet();
     bed();
     bedsideDrawer();
     lamp();
-    drawPoster();
+    poster();
     wardrobe();
     cupboard();
     dressingTable();
-    Clock();
+    clock();
     window();
     table();
     ceilingFan();
     lightBulb();
-    drawHouseDoor();
+    houseDoor();
     vaseWithFlowers();
     apple();
     christmasTree();
