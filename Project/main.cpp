@@ -1309,7 +1309,7 @@ void lampLight() {
 
 void sunLight() {
     glPushMatrix();
-    GLfloat light_position[] = { 15.0f, 6.0f, 9.0f, 1.0f };
+    GLfloat light_position[] = { 15.0f, 6.0f, 9.0f, 0.0f };
     GLfloat localIntensity = sunIntensity;
     if (localIntensity < 0.01f) localIntensity = 0.0f;
 
