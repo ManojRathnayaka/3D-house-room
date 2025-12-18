@@ -47,7 +47,7 @@ float sunIntensity = 0.2f;
 float treeTime = 0.0f;
 
 // Texture IDs
-GLuint woodTexture, posterTexture, carpetTexture, floorTexture, ceilingTexture;
+GLuint woodTexture, posterTexture, carpetTexture, floorTexture;
 GLUquadric* quad = NULL;
 
 // --- Geometry Data ---
@@ -189,9 +189,6 @@ void loadAllTextures() {
 
     posterTexture = SOIL_load_OGL_texture("image.jpg", SOIL_LOAD_AUTO, SOIL_CREATE_NEW_ID, SOIL_FLAG_MIPMAPS | SOIL_FLAG_INVERT_Y);
     if (!posterTexture) printf("Poster texture (image.jpg) loading failed: %s\n", SOIL_last_result());
-
-    ceilingTexture = SOIL_load_OGL_texture("ceiling.jpg", SOIL_LOAD_AUTO, SOIL_CREATE_NEW_ID, SOIL_FLAG_MIPMAPS | SOIL_FLAG_INVERT_Y);
-    if (!ceilingTexture) printf("Ceiling texture loading failed: %s\n", SOIL_last_result());
 }
 
 void drawTexturedCube(GLfloat width, GLfloat height, GLfloat depth, GLfloat difX, GLfloat difY, GLfloat difZ, GLfloat ambX = 0.2f, GLfloat ambY = 0.1f, GLfloat ambZ = 0.05f, GLfloat shine = 30) {
